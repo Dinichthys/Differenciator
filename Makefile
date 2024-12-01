@@ -21,7 +21,7 @@ CXXFLAGS += $(WARNINGS) $(MATHFLAGS)
 
 all: diff
 
-diff: clean_dump build build_diff main_diff.o differenciator.o read_diff.o dump_diff.o my_stdio.o logging.o print_error.o
+diff: clean_dump build build_diff main_diff.o differenciator.o simplify_diff.o read_diff.o dump_diff.o my_stdio.o logging.o print_error.o
 	@$(CXX) $(CXXFLAGS) build/diff/*.o build/my_stdio.o build/logging.o build/print_error.o -o diff
 
 
@@ -47,6 +47,9 @@ main_diff.o: Differenciator/main_diff.cpp
 
 differenciator.o: Differenciator/source/differenciator.cpp
 	@$(CXX) $(CXXFLAGS) -c Differenciator/source/differenciator.cpp -o build/diff/differenciator.o
+
+simplify_diff.o: Differenciator/source/simplify_diff.cpp
+	@$(CXX) $(CXXFLAGS) -c Differenciator/source/simplify_diff.cpp -o build/diff/simplify_diff.o
 
 read_diff.o: Differenciator/source/read_diff.cpp
 	@$(CXX) $(CXXFLAGS) -c Differenciator/source/read_diff.cpp -o build/diff/read_diff.o
