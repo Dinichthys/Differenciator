@@ -1,0 +1,18 @@
+digraph
+{
+	fontname = "Helvetica,Arial,sans-serif";
+	node [fontname = "Helvetica,Arial,sans-serif"];
+	graph [rankdir = "TB"];
+	ranksep = 1.5;
+
+	"node0x504000000210"
+	[
+		label = "{ <parent> parent = (nil) |
+ node = 0x504000000210 | <f0> -0.959 |{ <f1> left = (nil) | <f2> right = (nil) } }"
+		shape = "record"
+		style = "filled"
+		fillcolor = "green"
+		color = "green"
+	];
+
+}
