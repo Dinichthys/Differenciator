@@ -9,6 +9,7 @@
 
 static node_t* SimplifyNum     (node_t* const node, const double number);
 static node_t* SimplifyAddNull (node_t* const node);
+static node_t* SimplifyMulOne  (node_t* const node);
 static node_t* SimplifyFuncs   (node_t* const root);
 
 // ИДУТ РАБОТЫ! НЕ ЛЕЗЬ! -
@@ -17,58 +18,109 @@ node_t* Simplify (node_t* const root)
 {
     ASSERT (root != NULL, "Invalid argument root = %p\n", root);
 
-    LOG (DEBUG, "Root = %p\n", root);
+    LOG (DEBUG, "Root at start = %p\n", root);
+
+    node_t* new_root = root;
 
     const double zero = 0;
+    const double one  = 1;
 
     if (root->type != kFunc)
     {
         return root;
     }
 
-    if (((root->value.function == kAdd)
-        && ((memcmp (&(root->right->value.number), &zero, sizeof (zero)) == 0)
-        ||  (memcmp (&(root->left->value.number),  &zero, sizeof (zero)) == 0)))
-        ||  ((root->value.function == kSub) && (memcmp (&(root->right->value.number), &zero, sizeof (zero)) == 0)))
+    if (((new_root->value.function == kAdd)
+        && (((new_root->right->type == kNum) && (memcmp (&(new_root->right->value.number), &zero, sizeof (zero)) == 0))
+        ||  ((new_root->left->type  == kNum) && (memcmp (&(new_root->left->value.number),  &zero, sizeof (zero)) == 0))))
+        ||  ((new_root->value.function == kSub)
+        && ((new_root->right->type  == kNum) && (memcmp (&(new_root->right->value.number), &zero, sizeof (zero)) == 0))))
     {
-        return SimplifyAddNull (root);
+        new_root = SimplifyAddNull (new_root);
+
+        if (new_root->type != kFunc)
+        {
+            return new_root;
+        }
     }
 
-    if (((root->value.function == kMul)
-        && ((memcmp (&(root->right->value.number), &zero, sizeof (zero)) == 0)
-        ||  (memcmp (&(root->left->value.number),  &zero, sizeof (zero)) == 0)))
-        || ((root->value.function == kDiv)
-        && (memcmp (&(root->left->value.number), &zero, sizeof (zero)) == 0)))
+    ConnectTree (new_root);
+
+    LOG (DEBUG, "New root  after simplification (adding null) = %p\n", new_root);
+
+    if ((new_root->value.function == kMul)
+        && (((new_root->right->type == kNum) && (memcmp (&(new_root->right->value.number), &one, sizeof (one)) == 0))
+        ||  ((new_root->left->type  == kNum) && (memcmp (&(new_root->left->value.number),  &one, sizeof (one)) == 0))))
     {
-        return SimplifyNum (root, 0);
+        new_root = SimplifyMulOne (new_root);
+
+        if (new_root->type != kFunc)
+        {
+            return new_root;
+        }
     }
 
-    if ((((root->left  != NULL) && (root->left->type  == kNum)
-       && (root->right != NULL) && (root->right->type == kNum))
-      || (((root->left == NULL)) && (root->right != NULL) && (root->right->type == kNum))))
+    ConnectTree (new_root);
+
+    LOG (DEBUG, "New root  after simplification (multiply by one) = %p\n", new_root);
+
+    if (((new_root->value.function == kMul)
+        && (((new_root->right->type  == kNum) && ((memcmp (&(new_root->right->value.number), &zero, sizeof (zero)) == 0)))
+        ||  ((new_root->left->type   == kNum) &&  (memcmp (&(new_root->left->value.number),  &zero, sizeof (zero)) == 0))))
+        || ((new_root->value.function == kDiv)
+        && (((new_root->left->type  == kNum) && (memcmp (&(new_root->left->value.number), &zero, sizeof (zero)) == 0)))))
     {
-        return SimplifyFuncs (root);
+        new_root = SimplifyNum (new_root, 0);
+
+        if (new_root->type != kFunc)
+        {
+            return new_root;
+        }
     }
 
-    node_t* old_left  = root->left;
-    node_t* old_right = root->right;
+    ConnectTree (new_root);
 
-    if (root->left != NULL)
+    LOG (DEBUG, "New root after simplification (multiply null or divide zero) = %p\n", new_root);
+
+    if ((((new_root->left  != NULL) && (new_root->left->type  == kNum)
+       && (new_root->right != NULL) && (new_root->right->type == kNum))
+      || (((new_root->left == NULL)) && (new_root->right != NULL) && (new_root->right->type == kNum))))
     {
-        root->left = Simplify (root->left);
+        new_root = SimplifyFuncs (new_root);
+
+        if (new_root->type != kFunc)
+        {
+            return new_root;
+        }
     }
 
-    if (root->right != NULL)
+    ConnectTree (new_root);
+
+    LOG (DEBUG, "New root after simplification (functions with constants) = %p\n", new_root);
+
+    node_t* old_left  = new_root->left;
+    node_t* old_right = new_root->right;
+
+    if (new_root->left != NULL)
     {
-        root->right = Simplify (root->right);
+        new_root->left = Simplify (new_root->left);
     }
 
-    if ((old_left == root->left) && (old_right == root->right))
+    ConnectTree (new_root);
+
+    if (new_root->right != NULL)
     {
-        return root;
+        new_root->right = Simplify (new_root->right);
     }
 
-    return Simplify (root);
+    ConnectTree (new_root);
+
+    if ((old_left == new_root->left) && (old_right == new_root->right))
+    {
+        return new_root;
+    }
+
+    return Simplify (new_root);
 }
 
 static node_t* SimplifyNum (node_t* const node, const double number)
@@ -78,7 +130,7 @@ static node_t* SimplifyNum (node_t* const node, const double number)
     node_t* const parent = node->parent;
 
     FuncDtor (node);
-    return AddNode ({kNum, number, parent, NULL, NULL});
+    return AddNode ((node_t){kNum, number, parent, NULL, NULL});
 }
 
 static node_t* SimplifyAddNull (node_t* const node)
@@ -95,8 +147,11 @@ static node_t* SimplifyAddNull (node_t* const node)
         FuncDtor (node->left);
         result = node->right;
         free (node);
+        result->parent = NULL;
         return result;
     }
+
+    LOG (DEBUG, "Left node is not a node with null\n");
 
     if ((node->right != NULL) && (node->right->type == kNum)
         && (memcmp (&(node->right->value.number), &(zero), sizeof (zero)) == 0))
@@ -104,11 +159,44 @@ static node_t* SimplifyAddNull (node_t* const node)
         FuncDtor (node->right);
         result = node->left;
         free (node);
+        result->parent = NULL;
         return result;
     }
 
+    LOG (DEBUG, "Right node is not a node with null\n");
+
     return result;
 }
+
+static node_t* SimplifyMulOne (node_t* const node)
+{
+    ASSERT (node != NULL, "Invalid argument root = %p\n", node);
+
+    const double one = 1;
+
+    if ((node->value.function == kMul)
+        && (node->right->type == kNum) && (memcmp (&(node->right->value.number), &one, sizeof (one)) == 0))
+    {
+        node_t* result = node->left;
+        free (node->right);
+        node->left->parent = NULL;
+        free (node);
+        return result;
+    }
+
+    if ((node->value.function == kMul)
+        && (node->left->type == kNum) && (memcmp (&(node->left->value.number), &one, sizeof (one)) == 0))
+    {
+        node_t* result = node->right;
+        free (node->left);
+        node->right->parent = NULL;
+        free (node);
+        return result;
+    }
+
+    return NULL;
+}
+
 
 static node_t* SimplifyFuncs (node_t* const root)
 {
@@ -117,9 +205,9 @@ static node_t* SimplifyFuncs (node_t* const root)
     LOG (DEBUG, "Root = %p\n", root);
 
     #define BINARY_FUNC(func, operation)                                                            \
-        if (root->value.function == func)                                                            \
+        if (root->value.function == func)                                                           \
         {                                                                                           \
-            return SimplifyNum (root, root->left->value.number operation root->right->value.number); \
+            return SimplifyNum (root, root->left->value.number operation root->right->value.number);\
         }
 
     BINARY_FUNC (kAdd, +);
@@ -129,8 +217,13 @@ static node_t* SimplifyFuncs (node_t* const root)
 
     #undef BINARY_FUNC
 
+    if (root->value.function == kPow)
+    {
+        return SimplifyNum (root, pow (root->left->value.number, root->right->value.number));
+    }
+
     #define UNARY_FUNC(func, operation)                                           \
-        if (root->value.function == func)                                          \
+        if (root->value.function == func)                                         \
         {                                                                         \
             return SimplifyNum (root, operation (root->right->value.number));     \
         }
@@ -139,6 +232,13 @@ static node_t* SimplifyFuncs (node_t* const root)
     UNARY_FUNC (kCos, cos);
     UNARY_FUNC (kTg,  tan);
     UNARY_FUNC (kCtg, ((double) 1) / tan);
+
+    UNARY_FUNC (kLn, log);
+
+    if (root->value.function == kLog)
+    {
+        return SimplifyNum (root, log (root->right->value.number) / log (root->left->value.number));
+    }
 
     #undef UNARY_FUNC
 

@@ -24,9 +24,15 @@ enum DiffError
     kCantCallocInputBuffer  = 4,
     kCantOpenDataBase       = 5,
     kNoBraceCloser          = 6,
+    kUndefinedFuncForRead   = 7,
+    kSyntaxError            = 8,
 
-    kCantDumpDiff           = 7,
-    kInvalidNodeType        = 8,
+    kCantDumpDiff           = 9,
+    kInvalidNodeType        = 10,
+
+    kCantDiffTree           = 11,
+    kInvalidFuncForDiff     = 12,
+    kUndefinedFuncForDiff   = 13,
 };
 
 enum NodeType
@@ -43,10 +49,15 @@ enum FuncType
     kSub = 1,
     kMul = 2,
     kDiv = 3,
-    kSin = 4,
-    kCos = 5,
-    kTg  = 6,
-    kCtg = 7,
+    kPow = 4,
+
+    kSin = 5,
+    kCos = 6,
+    kTg  = 7,
+    kCtg = 8,
+
+    kLn  = 9,
+    kLog = 10,
 
     kInvalidFunc = -1,
 };
@@ -70,10 +81,13 @@ typedef struct node
 
 node_t* FuncCtor (void);
 enum DiffError FuncDtor     (node_t* const root);
-enum DiffError ReadDataBase (char* const input_file_name, node_t** const root);
+enum DiffError ReadDataBase (const char* const input_file_name, node_t** const root);
+enum DiffError Differencing (node_t** const new_root, node_t* const root);
 const char* EnumErrorToStr  (const enum DiffError error);
 node_t* AddNode (const node_t set_val);
 node_t* Simplify (node_t* const root);
 enum DiffError DumpDiff (node_t* const root);
+enum DiffError DuplicateTreeDiff (node_t** const new_root, const node_t* const root);
+enum DiffError ConnectTree       (node_t* const root);
 
 #endif // DIFFERENCIATOR_H

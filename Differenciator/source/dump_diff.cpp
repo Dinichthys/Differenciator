@@ -164,7 +164,7 @@ static enum DiffError PrintEdgesTreeDiff (node_t* const root, FILE* const dump_f
     {
         fprintf (dump_file, "\t\"node%p\":f1 -> \"node%p\""
                             "[color = \"black\"];\n\n",
-                            root, root->left);
+                            (void*) root, (void*) root->left);
         PrintEdgesTreeDiff (root->left, dump_file);
     }
 
@@ -172,7 +172,7 @@ static enum DiffError PrintEdgesTreeDiff (node_t* const root, FILE* const dump_f
     {
         fprintf (dump_file, "\t\"node%p\":f2 -> \"node%p\""
                             "[color = \"black\"];\n\n",
-                            root, root->right);
+                            (void*) root, (void*) root->right);
         PrintEdgesTreeDiff (root->right, dump_file);
     }
 
@@ -180,7 +180,7 @@ static enum DiffError PrintEdgesTreeDiff (node_t* const root, FILE* const dump_f
     {
         fprintf (dump_file, "\t\"node%p\":parent -> \"node%p\" "
                             "[color = \"black\"];\n\n",
-                            root, root->parent);
+                            (void*) root, (void*) root->parent);
     }
 
     return kDoneDiff;
@@ -188,23 +188,21 @@ static enum DiffError PrintEdgesTreeDiff (node_t* const root, FILE* const dump_f
 
 static const char* EnumFuncToStr (const enum FuncType func)
 {
-    #define CASE(func, str_func)    \
-        case error:                 \
-        {                           \
-            return str_func;        \
-        }
-
     switch (func)
     {
         case kAdd: return "+";
         case kSub: return "-";
         case kMul: return "*";
         case kDiv: return "/";
+        case kPow: return "^";
 
         case kSin: return "sin";
         case kCos: return "cos";
         case kTg:  return "tg";
         case kCtg: return "ctg";
+
+        case kLn:  return "ln";
+        case kLog: return "log";
 
         case kInvalidFunc: return "Invalid function";
 
@@ -212,5 +210,4 @@ static const char* EnumFuncToStr (const enum FuncType func)
             return "Invalid enum element";
     }
 
-    #undef CASE
 }

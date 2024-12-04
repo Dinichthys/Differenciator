@@ -1,7 +1,7 @@
 #include "differenciator.h"
 
-#include <stdio.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 #include "../My_lib/Logger/logging.h"
 
@@ -23,27 +23,13 @@ int main ()
         fprintf (stderr, "Can't start logging\n");
         return EXIT_FAILURE;
     }
-    // set_log_file (error_file);
+    set_log_file (error_file);
     set_log_lvl (DEBUG);
-
-    // node_t* root = NULL;
-
-    // node_t* root = FuncCtor ();
 
     node_t* root = FuncCtor ();
 
     enum DiffError result = kDoneDiff;
 
-//
-//     node_t set_val = {};
-//     set_val.type = kFunc;
-//     set_val.value.function = kSin;
-//     set_val.parent = set_val.left = set_val.right = NULL;
-//
-//     root = AddNode_ (set_val);
-//     // root->left = AddNode_ ({kNum, 2, NULL, NULL, NULL});
-//     root->right = AddNode_ ({kNum, 1.5, NULL, NULL, NULL});
-//
     result = ReadDataBase ("Example.txt", &root);
 
     ERROR_HANDLER (result);
@@ -58,7 +44,23 @@ int main ()
 
     ERROR_HANDLER (result);
 
-    fprintf (stderr, "%lf\n", root->value.number);
+    node_t* new_root = NULL;
+
+    result = Differencing (&new_root, root);
+
+    root = new_root;
+
+    result = DumpDiff (root);
+
+    ERROR_HANDLER (result);
+
+    root = Simplify (root);
+
+    result = DumpDiff (root);
+
+    ERROR_HANDLER (result);
+
+    // fprintf (stderr, "%lf\n", root->value.number);
 
     FuncDtor (root);
 

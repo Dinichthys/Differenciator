@@ -81,5 +81,6 @@ void set_log_file (FILE* const file)
     if (file != NULL)
     {
         logging_stream = file;
+        setbuf (file, NULL);
     }
 }
