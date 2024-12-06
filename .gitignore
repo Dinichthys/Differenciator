@@ -4,4 +4,13 @@ diff
 
 Dump_Files/
 
+Dump_Tex.aux
+Dump_Tex.log
+Dump_Tex.pdf
+
+Example.txt
+
+lekcia
+texput.log
+
 /build
