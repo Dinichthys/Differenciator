@@ -212,7 +212,7 @@ static enum DiffError PrintFuncDiff (const node_t* const root, FILE* const dump_
 
     BINARY_FUNC_INFIX (kAdd, "+");
     BINARY_FUNC_INFIX (kSub, "-");
-    BINARY_FUNC_INFIX (kMul, "*");
+    BINARY_FUNC_INFIX (kMul, "\\cdot");
     BINARY_FUNC_INFIX (kPow, "^");
 
     #undef BINARY_FUNC_INFIX
