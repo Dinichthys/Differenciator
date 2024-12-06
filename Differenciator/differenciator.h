@@ -88,18 +88,28 @@ typedef struct node
     struct node* right;
 } node_t;
 
-node_t* FuncCtor                 (void);
-enum DiffError FuncDtor          (node_t* const root);
-enum DiffError ReadDataBase      (const char* const input_file_name, node_t** const root);
-enum DiffError Differencing      (node_t** const new_root, node_t* const root);
-const char* EnumErrorToStr       (const enum DiffError error);
-node_t* AddNode                  (const node_t set_val);
-node_t* Simplify                 (node_t* const root);
-enum DiffError DumpDiff          (node_t* const root);
-enum DiffError DumpTexTreeDiff   (const node_t* const root, FILE* const dump_file);
-enum DiffError PrintEndTex       (FILE* const dump_file, const char* const directory_tex,
-                                                         const char* const file_name);
-enum DiffError DuplicateTreeDiff (node_t** const new_root, const node_t* const root);
-enum DiffError ConnectTree       (node_t* const root);
+node_t* FuncCtor                      (void);
+enum DiffError FuncDtor               (node_t* const root);
+enum DiffError ReadDataBase           (const char* const input_file_name, node_t** const root, FILE* const dump_file);
+enum DiffError Differencing           (node_t** const new_root, node_t* const root, FILE* const dump_file);
+const char* EnumErrorToStr            (const enum DiffError error);
+node_t* AddNode                       (const node_t set_val);
+node_t* Simplify                      (node_t* const root, FILE* const dump_file);
+enum DiffError DumpDiff               (node_t* const root);
+enum DiffError PrintFormula           (const node_t* const root, FILE* const dump_file);
+enum DiffError PrintTitleTex          (FILE* const dump_file);
+enum DiffError PrintEndTex            (FILE* const dump_file, const char* const directory_tex,
+                                                              const char* const file_name);
+enum DiffError PrintAfterReadTreeDiff (const char* const input_file_name, const node_t* const root,
+                                       FILE* const dump_file);
+enum DiffError PrintSimplify           (const node_t* const root, FILE* const dump_file);
+enum DiffError PrintSimplificationEnd  (const node_t* const root, FILE* const dump_file);
+enum DiffError PrintLoseSimplification (FILE* const dump_file);
+enum DiffError PrintObviouslyStart     (const node_t* const root, FILE* const dump_file);
+enum DiffError PrintObviouslyEnd       (const node_t* const root, FILE* const dump_file);
+enum DiffError PrintDifferencing       (const node_t* const old_root, const node_t* const new_root,
+                                        FILE* const dump_file);
+enum DiffError DuplicateTreeDiff       (node_t** const new_root, const node_t* const root);
+enum DiffError ConnectTree             (node_t* const root);
 
 #endif // DIFFERENCIATOR_H

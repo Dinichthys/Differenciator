@@ -14,12 +14,14 @@ static node_t* SimplifyFuncs   (node_t* const root);
 
 // ИДУТ РАБОТЫ! НЕ ЛЕЗЬ! -
 // ДЕЛО СДЕЛАНО -
-node_t* Simplify (node_t* const root)
+node_t* Simplify (node_t* const root, FILE* const dump_file)
 {
-    ASSERT (root != NULL, "Invalid argument root = %p\n", root);
+    ASSERT (root      != NULL, "Invalid argument root = %p\n",                 root);
+    ASSERT (dump_file != NULL, "Invalid argument Pointer on dump file = %p\n", dump_file);
 
     LOG (kDebug, "Root at start = %p\n", root);
 
+    // PrintSimplify (root, dump_file);
     node_t* new_root = root;
 
     const double zero = 0;
@@ -27,6 +29,7 @@ node_t* Simplify (node_t* const root)
 
     if (root->type != kFunc)
     {
+        // PrintLoseSimplification (dump_file);
         return root;
     }
 
@@ -36,7 +39,9 @@ node_t* Simplify (node_t* const root)
         ||  ((new_root->value.function == kSub)
         && ((new_root->right->type  == kNum) && (memcmp (&(new_root->right->value.number), &zero, sizeof (zero)) == 0))))
     {
+        PrintObviouslyStart (new_root, dump_file);
         new_root = SimplifyAddNull (new_root);
+        PrintObviouslyEnd (new_root, dump_file);
 
         if (new_root->type != kFunc)
         {
@@ -52,7 +57,9 @@ node_t* Simplify (node_t* const root)
         && (((new_root->right->type == kNum) && (memcmp (&(new_root->right->value.number), &one, sizeof (one)) == 0))
         ||  ((new_root->left->type  == kNum) && (memcmp (&(new_root->left->value.number),  &one, sizeof (one)) == 0))))
     {
+        PrintObviouslyStart (new_root, dump_file);
         new_root = SimplifyMulOne (new_root);
+        PrintObviouslyEnd (new_root, dump_file);
 
         if (new_root->type != kFunc)
         {
@@ -70,7 +77,9 @@ node_t* Simplify (node_t* const root)
         || ((new_root->value.function == kDiv)
         && (((new_root->left->type  == kNum) && (memcmp (&(new_root->left->value.number), &zero, sizeof (zero)) == 0)))))
     {
+        PrintObviouslyStart (new_root, dump_file);
         new_root = SimplifyNum (new_root, 0);
+        PrintObviouslyEnd (new_root, dump_file);
 
         if (new_root->type != kFunc)
         {
@@ -86,7 +95,9 @@ node_t* Simplify (node_t* const root)
        && (new_root->right != NULL) && (new_root->right->type == kNum))
       || (((new_root->left == NULL)) && (new_root->right != NULL) && (new_root->right->type == kNum))))
     {
+        PrintObviouslyStart (new_root, dump_file);
         new_root = SimplifyFuncs (new_root);
+        PrintObviouslyEnd (new_root, dump_file);
 
         if (new_root->type != kFunc)
         {
@@ -103,24 +114,29 @@ node_t* Simplify (node_t* const root)
 
     if (new_root->left != NULL)
     {
-        new_root->left = Simplify (new_root->left);
+        new_root->left = Simplify (new_root->left, dump_file);
     }
 
     ConnectTree (new_root);
 
     if (new_root->right != NULL)
     {
-        new_root->right = Simplify (new_root->right);
+        new_root->right = Simplify (new_root->right, dump_file);
     }
 
     ConnectTree (new_root);
+
+    // if (new_root == root)
+    // {
+    //     PrintLoseSimplification (dump_file);
+    // }
 
     if ((old_left == new_root->left) && (old_right == new_root->right))
     {
         return new_root;
     }
 
-    return Simplify (new_root);
+    return Simplify (new_root, dump_file);
 }
 
 static node_t* SimplifyNum (node_t* const node, const double number)

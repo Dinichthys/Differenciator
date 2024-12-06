@@ -35,16 +35,13 @@ int main ()
         fclose  (error_file);
         return EXIT_FAILURE;
     }
+    PrintTitleTex (dump_tex_file);
 
     node_t* root = FuncCtor ();
 
     enum DiffError result = kDoneDiff;
 
-    result = ReadDataBase ("Example.txt", &root);
-
-    ERROR_HANDLER (result);
-
-    result = DumpTexTreeDiff (root, dump_tex_file);
+    result = ReadDataBase ("Example.txt", &root, dump_tex_file);
 
     ERROR_HANDLER (result);
 
@@ -52,19 +49,17 @@ int main ()
 
     ERROR_HANDLER (result);
 
-    root = Simplify (root);
+    root = Simplify (root, dump_tex_file);
+
+    PrintSimplificationEnd (root, dump_tex_file);
 
     result = DumpDiff (root);
-
-    ERROR_HANDLER (result);
-
-    result = DumpTexTreeDiff (root, dump_tex_file);
 
     ERROR_HANDLER (result);
 
     node_t* new_root = NULL;
 
-    result = Differencing (&new_root, root);
+    result = Differencing (&new_root, root, dump_tex_file);
 
     root = new_root;
 
@@ -72,21 +67,13 @@ int main ()
 
     ERROR_HANDLER (result);
 
-    result = DumpTexTreeDiff (root, dump_tex_file);
+    root = Simplify (root, dump_tex_file);
 
-    ERROR_HANDLER (result);
-
-    root = Simplify (root);
+    PrintSimplificationEnd (root, dump_tex_file);
 
     result = DumpDiff (root);
 
     ERROR_HANDLER (result);
-
-    result = DumpTexTreeDiff (root, dump_tex_file);
-
-    ERROR_HANDLER (result);
-
-    // fprintf (stderr, "%lf\n", root->value.number);
 
     FuncDtor (root);
 

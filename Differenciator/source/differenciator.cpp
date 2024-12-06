@@ -26,7 +26,7 @@ static enum DiffError DiffkCtg (node_t** const new_root, const node_t* const roo
 static enum DiffError DiffkLn  (node_t** const new_root, const node_t* const root, const char var);
 static enum DiffError DiffkLog (node_t** const new_root, const node_t* const root, const char var);
 
-enum DiffError Differencing (node_t** const new_root, node_t* root)
+enum DiffError Differencing (node_t** const new_root, node_t* const root, FILE* const dump_file)
 {
     ASSERT (root     != NULL, "Invalid argument root = %p\n",     root);
     ASSERT (new_root != NULL, "Invalid argument new_root = %p\n", new_root);
@@ -42,6 +42,8 @@ enum DiffError Differencing (node_t** const new_root, node_t* root)
     }
 
     result = DiffTree (new_root, root, var);
+
+    PrintDifferencing (root, *new_root, dump_file);
 
     if (result != kDoneDiff)
     {

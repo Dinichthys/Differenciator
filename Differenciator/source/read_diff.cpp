@@ -26,7 +26,7 @@ static enum FuncType  StrToFunc   (char* const func);
 static void           SkipNumber  (char* const input_buf, size_t* const offset);
 static void           SkipComment (char* const input_buf, size_t* const offset);
 
-enum DiffError ReadDataBase (const char* const input_file_name, node_t** const root)
+enum DiffError ReadDataBase (const char* const input_file_name, node_t** const root, FILE* const dump_file)
 {
     ASSERT (input_file_name != NULL, "Invalid argument input file name = %p\n", input_file_name);
     ASSERT (root            != NULL, "Invalid argument root = %p\n", root);
@@ -82,6 +82,11 @@ enum DiffError ReadDataBase (const char* const input_file_name, node_t** const r
     }
 
     FREE_AND_NULL (input_buf);
+
+    if (result == kDoneDiff)
+    {
+        result = PrintAfterReadTreeDiff (input_file_name, *root, dump_file);
+    }
 
     return result;
 }

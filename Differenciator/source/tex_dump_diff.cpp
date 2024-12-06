@@ -7,29 +7,49 @@
 #include "../../My_lib/Logger/logging.h"
 #include "../../My_lib/My_stdio/my_stdio.h"
 
-static enum DiffError PrintTitleTex       (FILE* const dump_file);
 static enum DiffError PrintTreeDiffTex    (const node_t* const root, FILE* const dump_file);
 static enum DiffError PrintFuncDiff       (const node_t* const root, FILE* const dump_file);
 static enum DiffError PrintNumVarNodeDiff (const node_t* const root, FILE* const dump_file);
 
-enum DiffError DumpTexTreeDiff (const node_t* const root, FILE* const dump_file)
+enum DiffError PrintFormula (const node_t* const root, FILE* const dump_file)
 {
     ASSERT (root      != NULL, "Invalid argument root = %p\n",      root);
     ASSERT (dump_file != NULL, "Invalid argument dump_file = %p\n", dump_file);
 
     enum DiffError result = kDoneDiff;
 
-    if (ftell (dump_file) == 0)
-    {
-        result = PrintTitleTex (dump_file);
-    }
-
     fprintf (dump_file, "\\[\n");
     result = PrintTreeDiffTex (root, dump_file);
     fprintf (dump_file, "\n\\]\n"
-                        "\\newline");
+                        "\\newline\n");
 
     return result;
+}
+
+enum DiffError PrintTitleTex (FILE* const dump_file)
+{
+    ASSERT (dump_file != NULL, "Invalid argument dump_file = %p\n", dump_file);
+
+    setbuf (dump_file, NULL);
+
+    char data [kLenDataTex] = "";
+
+    time_t now = time (NULL);
+
+    strftime (data, kLenDataTex, "%B %Y", localtime (&now));
+
+    fprintf (dump_file, "\\documentclass{article}\n"
+                        "\n\\usepackage[T2A]{fontenc}\n"
+                        "\\usepackage[english, russian]{babel}\n"
+                        "\n\\title{Чудо отечественного производства}\n"
+                        "\\author{Dinichthys}\n"
+                        "\\date{%s}\n\n"
+                        "\\begin{document}\n"
+                        "\\maketitle\n"
+                        "\\newpage\n",
+                        data);
+
+    return kDoneDiff;
 }
 
 enum DiffError PrintEndTex (FILE* const dump_file, const char* const directory_tex, const char* const file_name)
@@ -51,27 +71,91 @@ enum DiffError PrintEndTex (FILE* const dump_file, const char* const directory_t
     return kDoneDiff;
 }
 
-static enum DiffError PrintTitleTex (FILE* const dump_file)
+enum DiffError PrintAfterReadTreeDiff (const char* const input_file_name, const node_t* const root, FILE* const dump_file)
 {
-    ASSERT (dump_file != NULL, "Invalid argument dump_file = %p\n", dump_file);
+    ASSERT (input_file_name != NULL, "Invalid argument Input file name = %p\n",      input_file_name);
+    ASSERT (root            != NULL, "Invalid argument root = %p\n",                 root);
+    ASSERT (dump_file       != NULL, "Invalid argument Pointer on dump file = %p\n", dump_file);
 
-    setbuf (dump_file, NULL);
+    fprintf (dump_file, "Ну, и что же находилось в файле \"%s\"? \n"
+                        "Похоже, это функция...\n", input_file_name);
 
-    char data [kLenDataTex] = "";
+    return PrintFormula (root, dump_file);
+}
 
-    time_t now = time (NULL);
+enum DiffError PrintSimplify (const node_t* const root, FILE* const dump_file)
+{
+    ASSERT (root      != NULL, "Invalid argument root = %p\n",                 root);
+    ASSERT (dump_file != NULL, "Invalid argument Pointer on dump file = %p\n", dump_file);
 
-    strftime (data, kLenDataTex, "%B %Y", localtime (&now));
+    fprintf (dump_file, "\n\\newline\n"
+                        "И так, попробуем упростить эту штуковину...\n");
 
-    fprintf (dump_file, "\\documentclass{article}\n"
-                        "\n\\usepackage[T2A]{fontenc}\n"
-                        "\\usepackage[english, russian]{babel}\n"
-                        "\n\\title{Чудо отечественного производства}\n"
-                        "\\author{Dinichthys}\n"
-                        "\\date{%s}\n\n"
-                        "\\begin{document}\n"
-                        "\t\\maketitle\n",
-                        data);
+    return PrintFormula (root, dump_file);
+}
+
+enum DiffError PrintLoseSimplification (FILE* const dump_file)
+{
+    ASSERT (dump_file != NULL, "Invalid argument Pointer on dump file = %p\n", dump_file);
+
+    fprintf (dump_file, "\n\\newline\n"
+                        "Увы, похоже, это несократимая хрень...\n"
+                        "Да и ладно, методом скипа идём дальше\n"
+                        "\\newline\n");
+
+    return kDoneDiff;
+}
+
+enum DiffError PrintObviouslyStart (const node_t* const root, FILE* const dump_file)
+{
+    ASSERT (root      != NULL, "Invalid argument root = %p\n",                 root);
+    ASSERT (dump_file != NULL, "Invalid argument Pointer on dump file = %p\n", dump_file);
+
+    fprintf (dump_file, "Ну, тут опытный советский глаз сразу заметит, что\n"
+                        "\\[\n");
+    return PrintTreeDiffTex (root, dump_file);
+}
+
+enum DiffError PrintObviouslyEnd (const node_t* const root, FILE* const dump_file)
+{
+    ASSERT (root      != NULL, "Invalid argument root = %p\n",                 root);
+    ASSERT (dump_file != NULL, "Invalid argument Pointer on dump file = %p\n", dump_file);
+
+    enum DiffError result = kDoneDiff;
+
+    fprintf (dump_file, "\n=\n");
+    result = PrintTreeDiffTex (root, dump_file);
+    fprintf (dump_file, "\n\\]\n");
+
+    return result;
+}
+
+enum DiffError PrintSimplificationEnd (const node_t* const root, FILE* const dump_file)
+{
+    ASSERT (root      != NULL, "Invalid argument root = %p\n",                 root);
+    ASSERT (dump_file != NULL, "Invalid argument Pointer on dump file = %p\n", dump_file);
+
+    fprintf (dump_file, "\n"
+                        "После этого преобразования очевидно, что формула приняла вид...\n");
+
+    return PrintFormula (root, dump_file);
+}
+
+
+enum DiffError PrintDifferencing (const node_t* const old_root, const node_t* const new_root,
+                                  FILE* const dump_file)
+{
+    ASSERT (dump_file != NULL, "Invalid argument Pointer on dump file = %p\n", dump_file);
+
+    fprintf (dump_file, "\nА теперь магическим образом берём производную от этой фигни\n"
+                        "\\newline\n");
+
+    PrintFormula (old_root, dump_file);
+
+    fprintf (dump_file, "\nОчевидно, она равна этому\n"
+                        "\\newline\n");
+
+    PrintFormula (new_root, dump_file);
 
     return kDoneDiff;
 }
@@ -184,7 +268,7 @@ static enum DiffError PrintNumVarNodeDiff (const node_t* const root, FILE* const
 
     if (root->type == kNum)
     {
-        fprintf (dump_file, " %.3lf ", root->value.number);
+        fprintf (dump_file, " %.3lg ", root->value.number);
 
         return kDoneDiff;
     }
