@@ -13,8 +13,8 @@ int my_strcmp (const char* const s1, const char* const s2)
     ASSERT (s1 != NULL, "Invalid pointer s1 for function %s\n", __FUNCTION__);
     ASSERT (s2 != NULL, "Invalid pointer s2 for function %s\n", __FUNCTION__);
 
-    LOG (DEBUG, "Function got arguments:\n"
-                "s1 = %s\ns2 = %s\n", s1, s2);
+    LOG (kDebug, "Function got arguments:\n"
+                 "s1 = %s\ns2 = %s\n", s1, s2);
 
     size_t i = 0;
     while ((tolower (s1 [i]) - tolower (s2 [i])) == 0)

@@ -16,12 +16,12 @@ void   my_fflush          (FILE* const input);
 #define FOPEN(file, name, mode)                                                     \
 {                                                                                   \
     file = fopen (name, mode);                                                      \
-    LOG (DEBUG, "File with name \"%s\" and pointer [%p] was opened\n", name, file); \
+    LOG (kDebug, "File with name \"%s\" and pointer [%p] was opened\n", name, file);\
 }
 
 #define FCLOSE(file)                                            \
 {                                                               \
-    LOG (DEBUG, "File with pointer [%p] was closed\n", file);   \
+    LOG (kDebug, "File with pointer [%p] was closed\n", file);  \
     fclose (file);                                              \
     file = NULL;                                                \
 }

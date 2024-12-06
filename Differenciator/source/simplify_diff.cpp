@@ -18,7 +18,7 @@ node_t* Simplify (node_t* const root)
 {
     ASSERT (root != NULL, "Invalid argument root = %p\n", root);
 
-    LOG (DEBUG, "Root at start = %p\n", root);
+    LOG (kDebug, "Root at start = %p\n", root);
 
     node_t* new_root = root;
 
@@ -46,7 +46,7 @@ node_t* Simplify (node_t* const root)
 
     ConnectTree (new_root);
 
-    LOG (DEBUG, "New root  after simplification (adding null) = %p\n", new_root);
+    LOG (kDebug, "New root  after simplification (adding null) = %p\n", new_root);
 
     if ((new_root->value.function == kMul)
         && (((new_root->right->type == kNum) && (memcmp (&(new_root->right->value.number), &one, sizeof (one)) == 0))
@@ -62,7 +62,7 @@ node_t* Simplify (node_t* const root)
 
     ConnectTree (new_root);
 
-    LOG (DEBUG, "New root  after simplification (multiply by one) = %p\n", new_root);
+    LOG (kDebug, "New root  after simplification (multiply by one) = %p\n", new_root);
 
     if (((new_root->value.function == kMul)
         && (((new_root->right->type  == kNum) && ((memcmp (&(new_root->right->value.number), &zero, sizeof (zero)) == 0)))
@@ -80,7 +80,7 @@ node_t* Simplify (node_t* const root)
 
     ConnectTree (new_root);
 
-    LOG (DEBUG, "New root after simplification (multiply null or divide zero) = %p\n", new_root);
+    LOG (kDebug, "New root after simplification (multiply null or divide zero) = %p\n", new_root);
 
     if ((((new_root->left  != NULL) && (new_root->left->type  == kNum)
        && (new_root->right != NULL) && (new_root->right->type == kNum))
@@ -96,7 +96,7 @@ node_t* Simplify (node_t* const root)
 
     ConnectTree (new_root);
 
-    LOG (DEBUG, "New root after simplification (functions with constants) = %p\n", new_root);
+    LOG (kDebug, "New root after simplification (functions with constants) = %p\n", new_root);
 
     node_t* old_left  = new_root->left;
     node_t* old_right = new_root->right;
@@ -151,7 +151,7 @@ static node_t* SimplifyAddNull (node_t* const node)
         return result;
     }
 
-    LOG (DEBUG, "Left node is not a node with null\n");
+    LOG (kDebug, "Left node is not a node with null\n");
 
     if ((node->right != NULL) && (node->right->type == kNum)
         && (memcmp (&(node->right->value.number), &(zero), sizeof (zero)) == 0))
@@ -163,7 +163,7 @@ static node_t* SimplifyAddNull (node_t* const node)
         return result;
     }
 
-    LOG (DEBUG, "Right node is not a node with null\n");
+    LOG (kDebug, "Right node is not a node with null\n");
 
     return result;
 }
@@ -202,7 +202,7 @@ static node_t* SimplifyFuncs (node_t* const root)
 {
     ASSERT (root != NULL, "Invalid argument root = %p\n", root);
 
-    LOG (DEBUG, "Root = %p\n", root);
+    LOG (kDebug, "Root = %p\n", root);
 
     #define BINARY_FUNC(func, operation)                                                            \
         if (root->value.function == func)                                                           \

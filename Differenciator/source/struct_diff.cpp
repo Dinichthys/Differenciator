@@ -125,12 +125,17 @@ const char* EnumErrorToStr (const enum DiffError error)
         CASE (kUndefinedFuncForRead);
         CASE (kSyntaxError);
 
-        CASE (kCantDumpDiff);
-        CASE (kInvalidNodeType);
-
         CASE (kCantDiffTree);
         CASE (kInvalidFuncForDiff);
         CASE (kUndefinedFuncForDiff);
+
+        CASE (kCantDumpDiff);
+        CASE (kInvalidNodeType);
+
+        CASE (kCantOpenFileDumpTexDiff);
+        CASE (kCantMakePdfTexDiff);
+        CASE (kInvalidNodeForPrintTexDiff);
+        CASE (kUndefFuncPrintTexDiff);
 
         default:
             return "Invalid enum element";

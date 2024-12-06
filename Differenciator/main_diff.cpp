@@ -11,6 +11,8 @@
         fprintf (stderr, "Code error = {%d} with name \"%s\"\n",                                        \
                          error, EnumErrorToStr (error));                                                \
         FuncDtor (root);                                                                                \
+        PrintEndTex (dump_tex_file, "/Dump_Files", "Dump_Files/Dump_Tex.tex");                          \
+        fclose (dump_tex_file);                                                                         \
         fclose (error_file);                                                                            \
         return EXIT_FAILURE;                                                                            \
     }
@@ -24,13 +26,25 @@ int main ()
         return EXIT_FAILURE;
     }
     set_log_file (error_file);
-    set_log_lvl (DEBUG);
+    set_log_lvl (kDebug);
+
+    FILE* const dump_tex_file = fopen ("Dump_Files/Dump_Tex.tex", "w");
+    if (dump_tex_file == NULL)
+    {
+        fprintf (stderr, "Cant't start tex dump\n");
+        fclose  (error_file);
+        return EXIT_FAILURE;
+    }
 
     node_t* root = FuncCtor ();
 
     enum DiffError result = kDoneDiff;
 
     result = ReadDataBase ("Example.txt", &root);
+
+    ERROR_HANDLER (result);
+
+    result = DumpTexTreeDiff (root, dump_tex_file);
 
     ERROR_HANDLER (result);
 
@@ -41,6 +55,10 @@ int main ()
     root = Simplify (root);
 
     result = DumpDiff (root);
+
+    ERROR_HANDLER (result);
+
+    result = DumpTexTreeDiff (root, dump_tex_file);
 
     ERROR_HANDLER (result);
 
@@ -54,9 +72,17 @@ int main ()
 
     ERROR_HANDLER (result);
 
+    result = DumpTexTreeDiff (root, dump_tex_file);
+
+    ERROR_HANDLER (result);
+
     root = Simplify (root);
 
     result = DumpDiff (root);
+
+    ERROR_HANDLER (result);
+
+    result = DumpTexTreeDiff (root, dump_tex_file);
 
     ERROR_HANDLER (result);
 
@@ -64,6 +90,9 @@ int main ()
 
     FuncDtor (root);
 
+    PrintEndTex (dump_tex_file, "/Dump_Files", "Dump_Files/Dump_Tex.tex");
+
+    fclose (dump_tex_file);
     fclose (error_file);
 
     return EXIT_SUCCESS;

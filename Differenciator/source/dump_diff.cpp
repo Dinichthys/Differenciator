@@ -16,9 +16,9 @@ enum DiffError DumpDiff (node_t* const root)
 {
     ASSERT (root != NULL, "Invalid argument: root = %p\n", root);
 
-    LOG (DEBUG, "Function got arguments:\n"
-                "| root = %p |\n",
-                root);
+    LOG (kDebug, "Function got arguments:\n"
+                 "| root = %p |\n",
+                 root);
 
     static size_t counter_dump = 0;
 
@@ -105,9 +105,9 @@ static enum DiffError PrintNodeInfoDiff (node_t* const node, FILE* const dump_fi
         }
 //-------------------------------------------------------------------
 
-    LOG (DEBUG, "Function got arguments:\n"
-                "| node = %p | dump_file = %p |\n",
-                node, dump_file);
+    LOG (kDebug, "Function got arguments:\n"
+                 "| node = %p | dump_file = %p |\n",
+                 node, dump_file);
 
     switch (node->type)
     {
@@ -132,9 +132,9 @@ static enum DiffError PrintTreeInfoDiff (node_t* const root, FILE* const dump_fi
     ASSERT (root      != NULL, "Invalid argument root = %p\n", root);
     ASSERT (dump_file != NULL, "Invalid argument dump_file = %p\n", dump_file);
 
-    LOG (DEBUG, "Function got arguments:\n"
-                "| root = %p | dump_file = %p |\n",
-                root, dump_file);
+    LOG (kDebug, "Function got arguments:\n"
+                 "| root = %p | dump_file = %p |\n",
+                 root, dump_file);
 
     PrintNodeInfoDiff (root, dump_file);
 
@@ -156,9 +156,9 @@ static enum DiffError PrintEdgesTreeDiff (node_t* const root, FILE* const dump_f
     ASSERT (root      != NULL, "Invalid argument root = %p\n", root);
     ASSERT (dump_file != NULL, "Invalid argument dump_file = %p\n", dump_file);
 
-    LOG (DEBUG, "Function got arguments:\n"
-                "| root = %p | dump_file = %p |\n",
-                root, dump_file);
+    LOG (kDebug, "Function got arguments:\n"
+                 "| root = %p | dump_file = %p |\n",
+                 root, dump_file);
 
     if (root->left != NULL)
     {

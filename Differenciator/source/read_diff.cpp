@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
+#include <math.h>
 
 #include "../../My_lib/Assert/my_assert.h"
 #include "../../My_lib/Logger/logging.h"
@@ -14,9 +15,16 @@ static enum DiffError GetMulDiv   (char* const input_buf, size_t* const offset, 
 static enum DiffError GetPow      (char* const input_buf, size_t* const offset, node_t** const node);
 static enum DiffError GetBrace    (char* const input_buf, size_t* const offset, node_t** const node);
 static enum DiffError GetNumVar   (char* const input_buf, size_t* const offset, node_t** const node);
-static enum DiffError SyntaxError (const size_t offset);
+
+static enum DiffError GetFunc     (char* const input_buf, size_t* const offset, node_t** const node);
+static enum DiffError GetVar      (char* const input_buf, size_t* const offset, node_t** const node);
+static enum DiffError GetNumber   (char* const input_buf, size_t* const offset, node_t** const node);
+
+static enum DiffError SyntaxError (const char* const input_file_name, const size_t offset);
+
 static enum FuncType  StrToFunc   (char* const func);
 static void           SkipNumber  (char* const input_buf, size_t* const offset);
+static void           SkipComment (char* const input_buf, size_t* const offset);
 
 enum DiffError ReadDataBase (const char* const input_file_name, node_t** const root)
 {
@@ -34,8 +42,8 @@ enum DiffError ReadDataBase (const char* const input_file_name, node_t** const r
 
     size_t file_size = size_of_file (input);
 
-    LOG (DEBUG, "Size of file = %lu\n",
-                file_size);
+    LOG (kDebug, "Size of file = %lu\n",
+                 file_size);
 
     if (file_size == 0)
     {
@@ -48,9 +56,9 @@ enum DiffError ReadDataBase (const char* const input_file_name, node_t** const r
         return kCantCallocInputBuffer;
     }
 
-    LOG (DEBUG, "Input buffer = %p\n"
-                "Size of file = %lu\n",
-                input_buf, file_size);
+    LOG (kDebug, "Input buffer = %p\n"
+                 "Size of file = %lu\n",
+                 input_buf, file_size);
 
     if (fread (input_buf, sizeof (char), file_size, input) == 0)
     {
@@ -70,286 +78,10 @@ enum DiffError ReadDataBase (const char* const input_file_name, node_t** const r
     {
         FREE_AND_NULL (input_buf);
 
-        return SyntaxError (offset);
+        return SyntaxError (input_file_name, offset);
     }
 
     FREE_AND_NULL (input_buf);
-
-    return result;
-}
-
-static enum DiffError GetNumVar (char* const input_buf, size_t* const offset, node_t** const node)
-{
-    ASSERT (input_buf != NULL, "Invalid argument input_buf = %p\n", input_buf);
-    ASSERT (offset    != NULL, "Invalid argument offset = %p\n",    offset);
-    ASSERT (node      != NULL, "Invalid argument node = %p\n",      node);
-
-    enum DiffError result = kDoneDiff;
-
-    LOG (DEBUG, "Input buffer    = %p\n"
-                "Offset          = %lu\n"
-                "Node*           = %p\n"
-                "Run time symbol = {%c}\n",
-                input_buf, *offset, node, input_buf [*offset]);
-
-    *offset += skip_space_symbols (input_buf + *offset);
-
-    if (*node == NULL)
-    {
-        *node = FuncCtor ();
-    }
-
-    if (isalpha (input_buf [*offset]))
-    {
-        if (isalpha (input_buf [*offset + 1]))
-        {
-            char func   [kLenFunc]   = "";
-
-            sscanf (input_buf + *offset, "%[^ ^\t^\n^(^)]", func);
-
-            LOG (DEBUG, "Read function = %s\n", func);
-
-            (*node)->type = kFunc;
-            (*node)->value.function = StrToFunc (func);
-
-            if ((*node)->value.function == kInvalidFunc)
-            {
-                return kUndefinedFuncForRead;
-            }
-
-            *offset += strlen (func);
-            *offset += skip_space_symbols (input_buf + *offset);
-
-            result = GetBrace (input_buf, offset, &((*node)->right));
-
-            ConnectTree (*node);
-
-            *offset += skip_space_symbols (input_buf + *offset);
-
-            if ((*node)->value.function != kLog)
-            {
-                return result;
-            }
-
-            (*node)->left = (*node)->right;
-
-            (*node)->right = NULL;
-
-            result = GetBrace (input_buf, offset, &((*node)->right));
-
-            ConnectTree (*node);
-
-            return result;
-        }
-        else
-        {
-            (*node)->type = kVar;
-            (*node)->value.variable = input_buf [*offset];
-
-            (*offset)++;
-            *offset += skip_space_symbols (input_buf + *offset);
-
-            return result;
-        }
-    }
-
-    double number = 0;
-    if (sscanf (input_buf + *offset, "%lf", &number) == 1)
-    {
-        LOG (DEBUG, "Read number = %lf\n"
-                    "Offset = %lu\n"
-                    "Node** = %p\n", number, *offset + 1, node);
-
-        (*node)->type = kNum;
-        (*node)->value.number = number;
-
-        SkipNumber (input_buf, offset);
-    }
-
-    *offset += skip_space_symbols (input_buf + *offset);
-
-    return result;
-}
-
-static enum DiffError GetBrace (char* const input_buf, size_t* const offset, node_t** const node)
-{
-    ASSERT (input_buf != NULL, "Invalid argument input_buf = %p\n", input_buf);
-    ASSERT (offset    != NULL, "Invalid argument offset = %p\n",    offset);
-    ASSERT (node      != NULL, "Invalid argument node = %p\n",      node);
-
-    enum DiffError result = kDoneDiff;
-
-    LOG (DEBUG, "Input buffer    = %p\n"
-                "Offset          = %lu\n"
-                "Node*           = %p\n"
-                "Run time symbol = {%c}\n",
-                input_buf, *offset, node, input_buf [*offset]);
-
-    *offset += skip_space_symbols (input_buf + *offset);
-
-    if (input_buf [*offset] == '(')
-    {
-        (*offset)++;
-
-        result = GetAddSub (input_buf, offset, node);
-        if (result != kDoneDiff)
-        {
-            return result;
-        }
-
-        if (input_buf [*offset] != ')')
-        {
-            return kNoBraceCloser;
-        }
-
-        (*offset)++;
-        *offset += skip_space_symbols (input_buf + *offset);
-
-        return result;
-    }
-
-    *offset += skip_space_symbols (input_buf + *offset);
-
-    return GetNumVar (input_buf, offset, node);
-}
-
-static enum DiffError GetPow (char* const input_buf, size_t* const offset, node_t** const node)
-{
-    ASSERT (input_buf != NULL, "Invalid argument input_buf = %p\n", input_buf);
-    ASSERT (offset    != NULL, "Invalid argument offset = %p\n",    offset);
-    ASSERT (node      != NULL, "Invalid argument node = %p\n",      node);
-
-    enum DiffError result = kDoneDiff;
-
-    LOG (DEBUG, "Input buffer    = %p\n"
-                "Offset          = %lu\n"
-                "Node*           = %p\n"
-                "Run time symbol = {%c}\n",
-                input_buf, *offset, node, input_buf [*offset]);
-
-    *offset += skip_space_symbols (input_buf + *offset);
-
-    result = GetBrace (input_buf, offset, node);
-
-    LOG (DEBUG, "Run time symbol = {%c}\n", input_buf [*offset]);
-
-    *offset += skip_space_symbols (input_buf + *offset);
-
-    if (input_buf [*offset] != '^')
-    {
-        return result;
-    }
-
-    node_t* root = FuncCtor ();
-
-    root->left = *node;
-    (*node)->parent = root;
-    *node = root;
-
-    while (input_buf [(*offset)++] == '^')
-    {
-        if (root->type != kNewNode)
-        {
-            node_t* subtree = root;
-            root = FuncCtor ();
-            root->left = subtree;
-            root->left->parent = root;
-        }
-
-        root->type = kFunc;
-
-        root->value.function = kPow;
-
-        result = GetBrace (input_buf, offset, &(root->right));
-
-        *offset += skip_space_symbols (input_buf + *offset);
-
-        root->right->parent = root;
-
-        *node = root;
-
-        if (input_buf [*offset] == '\0')
-        {
-            return kDoneDiff;
-        }
-    }
-
-    *offset += skip_space_symbols (input_buf + *offset);
-
-    return result;
-}
-
-static enum DiffError GetMulDiv (char* const input_buf, size_t* const offset, node_t** const node)
-{
-    ASSERT (input_buf != NULL, "Invalid argument input_buf = %p\n", input_buf);
-    ASSERT (offset    != NULL, "Invalid argument offset = %p\n",    offset);
-    ASSERT (node      != NULL, "Invalid argument node = %p\n",      node);
-
-    enum DiffError result = kDoneDiff;
-
-    LOG (DEBUG, "Input buffer    = %p\n"
-                "Offset          = %lu\n"
-                "Node*           = %p\n"
-                "Run time symbol = {%c}\n",
-                input_buf, *offset, node, input_buf [*offset]);
-
-    *offset += skip_space_symbols (input_buf + *offset);
-
-    result = GetPow (input_buf, offset, node);
-
-    LOG (DEBUG, "Run time symbol = {%c}\n", input_buf [*offset]);
-
-    *offset += skip_space_symbols (input_buf + *offset);
-
-    if ((input_buf [*offset] != '*')
-     && (input_buf [*offset] != '/'))
-    {
-        return result;
-    }
-
-    node_t* root = FuncCtor ();
-
-    root->left = *node;
-    (*node)->parent = root;
-    *node = root;
-
-    while ((input_buf [*offset] == '*')
-        || (input_buf [*offset] == '/'))
-    {
-        if (root->type != kNewNode)
-        {
-            node_t* subtree = root;
-            root = FuncCtor ();
-            root->left = subtree;
-            root->left->parent = root;
-        }
-
-        root->type = kFunc;
-
-        if (input_buf [(*offset)++] == '*')
-        {
-            root->value.function = kMul;
-        }
-        else
-        {
-            root->value.function = kDiv;
-        }
-
-        result = GetPow (input_buf, offset, &(root->right));
-
-        *offset += skip_space_symbols (input_buf + *offset);
-
-        root->right->parent = root;
-
-        *node = root;
-
-        if (input_buf [*offset] == '\0')
-        {
-            return kDoneDiff;
-        }
-    }
-
-    *offset += skip_space_symbols (input_buf + *offset);
 
     return result;
 }
@@ -362,11 +94,11 @@ static enum DiffError GetAddSub (char* const input_buf, size_t* const offset, no
 
     enum DiffError result = kDoneDiff;
 
-    LOG (DEBUG, "Input buffer    = %p\n"
-                "Offset          = %lu\n"
-                "Node*           = %p\n"
-                "Run time symbol = {%c}\n",
-                input_buf, *offset, node, input_buf [*offset]);
+    LOG (kDebug, "Input buffer    = %p\n"
+                 "Offset          = %lu\n"
+                 "Node*           = %p\n"
+                 "Run time symbol = {%c}\n",
+                 input_buf, *offset, node, input_buf [*offset]);
 
     *offset += skip_space_symbols (input_buf + *offset);
 
@@ -380,7 +112,7 @@ static enum DiffError GetAddSub (char* const input_buf, size_t* const offset, no
         root->type = kFunc;
         root->value.function = kSub;
 
-        LOG (DEBUG, "Root with minus = %p\n", root);
+        LOG (kDebug, "Root with minus = %p\n", root);
 
         root->left = FuncCtor ();
         root->left->parent = root;
@@ -397,9 +129,20 @@ static enum DiffError GetAddSub (char* const input_buf, size_t* const offset, no
         result = GetMulDiv (input_buf, offset, node);
     }
 
-    LOG (DEBUG, "Run time symbol = {%c}\n", input_buf [*offset]);
+    if (input_buf [*offset] == '\0')
+    {
+        return kDoneDiff;
+    }
+
+    LOG (kDebug, "Run time symbol = {%c}\n", input_buf [*offset]);
 
     *offset += skip_space_symbols (input_buf + *offset);
+
+    if (input_buf [*offset] == kCommentSymbol)
+    {
+        SkipComment (input_buf, offset);
+        *offset += skip_space_symbols (input_buf + *offset);
+    }
 
     if ((input_buf [*offset] != '+')
      && (input_buf [*offset] != '-'))
@@ -454,6 +197,389 @@ static enum DiffError GetAddSub (char* const input_buf, size_t* const offset, no
     return result;
 }
 
+static enum DiffError GetMulDiv (char* const input_buf, size_t* const offset, node_t** const node)
+{
+    ASSERT (input_buf != NULL, "Invalid argument input_buf = %p\n", input_buf);
+    ASSERT (offset    != NULL, "Invalid argument offset = %p\n",    offset);
+    ASSERT (node      != NULL, "Invalid argument node = %p\n",      node);
+
+    enum DiffError result = kDoneDiff;
+
+    LOG (kDebug, "Input buffer    = %p\n"
+                "Offset          = %lu\n"
+                "Node*           = %p\n"
+                "Run time symbol = {%c}\n",
+                input_buf, *offset, node, input_buf [*offset]);
+
+    *offset += skip_space_symbols (input_buf + *offset);
+
+    result = GetPow (input_buf, offset, node);
+
+    if (input_buf [*offset] == '\0')
+    {
+        return kDoneDiff;
+    }
+
+    LOG (kDebug, "Run time symbol = {%c}\n", input_buf [*offset]);
+
+    *offset += skip_space_symbols (input_buf + *offset);
+
+    if (input_buf [*offset] == kCommentSymbol)
+    {
+        SkipComment (input_buf, offset);
+        *offset += skip_space_symbols (input_buf + *offset);
+    }
+
+    if ((input_buf [*offset] != '*')
+     && (input_buf [*offset] != '/'))
+    {
+        return result;
+    }
+
+    node_t* root = FuncCtor ();
+
+    root->left = *node;
+    (*node)->parent = root;
+    *node = root;
+
+    while ((input_buf [*offset] == '*')
+        || (input_buf [*offset] == '/'))
+    {
+        if (root->type != kNewNode)
+        {
+            node_t* subtree = root;
+            root = FuncCtor ();
+            root->left = subtree;
+            root->left->parent = root;
+        }
+
+        root->type = kFunc;
+
+        if (input_buf [(*offset)++] == '*')
+        {
+            root->value.function = kMul;
+        }
+        else
+        {
+            root->value.function = kDiv;
+        }
+
+        result = GetPow (input_buf, offset, &(root->right));
+
+        *offset += skip_space_symbols (input_buf + *offset);
+
+        root->right->parent = root;
+
+        *node = root;
+
+        if (input_buf [*offset] == '\0')
+        {
+            return kDoneDiff;
+        }
+    }
+
+    *offset += skip_space_symbols (input_buf + *offset);
+
+    return result;
+}
+
+static enum DiffError GetPow (char* const input_buf, size_t* const offset, node_t** const node)
+{
+    ASSERT (input_buf != NULL, "Invalid argument input_buf = %p\n", input_buf);
+    ASSERT (offset    != NULL, "Invalid argument offset = %p\n",    offset);
+    ASSERT (node      != NULL, "Invalid argument node = %p\n",      node);
+
+    enum DiffError result = kDoneDiff;
+
+    LOG (kDebug, "Input buffer    = %p\n"
+                "Offset          = %lu\n"
+                "Node*           = %p\n"
+                "Run time symbol = {%c}\n",
+                input_buf, *offset, node, input_buf [*offset]);
+
+    *offset += skip_space_symbols (input_buf + *offset);
+
+    result = GetBrace (input_buf, offset, node);
+
+    LOG (kDebug, "Run time symbol = {%c}\n", input_buf [*offset]);
+
+    *offset += skip_space_symbols (input_buf + *offset);
+
+    if (input_buf [*offset] == kCommentSymbol)
+    {
+        SkipComment (input_buf, offset);
+        *offset += skip_space_symbols (input_buf + *offset);
+    }
+
+    if (input_buf [*offset] != '^')
+    {
+        return result;
+    }
+
+    node_t* root = FuncCtor ();
+
+    root->left = *node;
+    (*node)->parent = root;
+    *node = root;
+
+    while (input_buf [(*offset)++] == '^')
+    {
+        if (root->type != kNewNode)
+        {
+            node_t* subtree = root;
+            root = FuncCtor ();
+            root->left = subtree;
+            root->left->parent = root;
+        }
+
+        root->type = kFunc;
+
+        root->value.function = kPow;
+
+        result = GetBrace (input_buf, offset, &(root->right));
+
+        *offset += skip_space_symbols (input_buf + *offset);
+
+        root->right->parent = root;
+
+        *node = root;
+
+        if (input_buf [*offset] == '\0')
+        {
+            return kDoneDiff;
+        }
+    }
+
+    *offset += skip_space_symbols (input_buf + *offset);
+
+    return result;
+}
+
+static enum DiffError GetBrace (char* const input_buf, size_t* const offset, node_t** const node)
+{
+    ASSERT (input_buf != NULL, "Invalid argument input_buf = %p\n", input_buf);
+    ASSERT (offset    != NULL, "Invalid argument offset = %p\n",    offset);
+    ASSERT (node      != NULL, "Invalid argument node = %p\n",      node);
+
+    enum DiffError result = kDoneDiff;
+
+    LOG (kDebug, "Input buffer    = %p\n"
+                "Offset          = %lu\n"
+                "Node*           = %p\n"
+                "Run time symbol = {%c}\n",
+                input_buf, *offset, node, input_buf [*offset]);
+
+    *offset += skip_space_symbols (input_buf + *offset);
+
+    if (input_buf [*offset] == kCommentSymbol)
+    {
+        SkipComment (input_buf, offset);
+        *offset += skip_space_symbols (input_buf + *offset);
+    }
+
+    if (input_buf [*offset] == '(')
+    {
+        (*offset)++;
+
+        result = GetAddSub (input_buf, offset, node);
+        if (result != kDoneDiff)
+        {
+            return result;
+        }
+
+        if (input_buf [*offset] != ')')
+        {
+            return kNoBraceCloser;
+        }
+
+        (*offset)++;
+        *offset += skip_space_symbols (input_buf + *offset);
+
+        return result;
+    }
+
+    *offset += skip_space_symbols (input_buf + *offset);
+
+    return GetNumVar (input_buf, offset, node);
+}
+
+static enum DiffError GetNumVar (char* const input_buf, size_t* const offset, node_t** const node)
+{
+    ASSERT (input_buf != NULL, "Invalid argument input_buf = %p\n", input_buf);
+    ASSERT (offset    != NULL, "Invalid argument offset = %p\n",    offset);
+    ASSERT (node      != NULL, "Invalid argument node = %p\n",      node);
+
+    enum DiffError result = kDoneDiff;
+
+    LOG (kDebug, "Input buffer    = %p\n"
+                "Offset          = %lu\n"
+                "Node*           = %p\n"
+                "Run time symbol = {%c}\n",
+                input_buf, *offset, node, input_buf [*offset]);
+
+    *offset += skip_space_symbols (input_buf + *offset);
+
+    if (*node == NULL)
+    {
+        *node = FuncCtor ();
+    }
+
+    if (input_buf [*offset] == kCommentSymbol)
+    {
+        SkipComment (input_buf, offset);
+        *offset += skip_space_symbols (input_buf + *offset);
+    }
+
+    if (isalpha (input_buf [*offset]))
+    {
+        if (isalpha (input_buf [*offset + 1]))
+        {
+            result = GetFunc (input_buf, offset, node);
+
+            *offset += skip_space_symbols (input_buf + *offset);
+
+            return result;
+        }
+        else
+        {
+            result = GetVar (input_buf, offset, node);
+
+            *offset += skip_space_symbols (input_buf + *offset);
+
+            return result;
+        }
+    }
+
+    result = GetNumber (input_buf, offset, node);
+
+    *offset += skip_space_symbols (input_buf + *offset);
+
+    return result;
+}
+
+static enum DiffError GetFunc (char* const input_buf, size_t* const offset, node_t** const node)
+{
+    ASSERT (input_buf != NULL, "Invalid argument input_buf = %p\n", input_buf);
+    ASSERT (offset    != NULL, "Invalid argument offset = %p\n",    offset);
+    ASSERT (node      != NULL, "Invalid argument node = %p\n",      node);
+
+    enum DiffError result = kDoneDiff;
+
+    char func   [kLenFunc]   = "";
+
+    sscanf (input_buf + *offset, "%[^ ^\t^\n^(^)]", func);
+
+    LOG (kDebug, "Read function = %s\n", func);
+
+    if (my_strcmp (func, "pi") == 0)
+    {
+        (*node)->type = kNum;
+        (*node)->value.number = M_PI;
+
+        *offset += strlen (func);
+        *offset += skip_space_symbols (input_buf + *offset);
+
+        return kDoneDiff;
+    }
+
+    (*node)->type = kFunc;
+    (*node)->value.function = StrToFunc (func);
+
+    if ((*node)->value.function == kInvalidFunc)
+    {
+        return kUndefinedFuncForRead;
+    }
+
+    *offset += strlen (func);
+    *offset += skip_space_symbols (input_buf + *offset);
+
+    result = GetBrace (input_buf, offset, &((*node)->right));
+
+    ConnectTree (*node);
+
+    *offset += skip_space_symbols (input_buf + *offset);
+
+    if ((*node)->value.function != kLog)
+    {
+        return result;
+    }
+
+    (*node)->left = (*node)->right;
+
+    (*node)->right = NULL;
+
+    result = GetBrace (input_buf, offset, &((*node)->right));
+
+    ConnectTree (*node);
+
+    *offset += skip_space_symbols (input_buf + *offset);
+
+    return result;
+}
+
+static enum DiffError GetVar (char* const input_buf, size_t* const offset, node_t** const node)
+{
+    ASSERT (input_buf != NULL, "Invalid argument input_buf = %p\n", input_buf);
+    ASSERT (offset    != NULL, "Invalid argument offset = %p\n",    offset);
+    ASSERT (node      != NULL, "Invalid argument node = %p\n",      node);
+
+    enum DiffError result = kDoneDiff;
+
+    *offset += skip_space_symbols (input_buf + *offset);
+
+    LOG (kDebug, "Input buffer    = %p\n"
+                "Offset          = %lu\n"
+                "Node*           = %p\n"
+                "Run time symbol = {%c}\n",
+                input_buf, *offset, node, input_buf [*offset]);
+
+    if (input_buf [*offset] == 'e')
+    {
+        (*node)->type = kNum;
+        (*node)->value.number = M_E;
+
+        (*offset)++;
+        *offset += skip_space_symbols (input_buf + *offset);
+
+        return kDoneDiff;
+    }
+
+
+    (*node)->type = kVar;
+    (*node)->value.variable = input_buf [*offset];
+
+    (*offset)++;
+    *offset += skip_space_symbols (input_buf + *offset);
+
+    return result;
+}
+
+static enum DiffError GetNumber (char* const input_buf, size_t* const offset, node_t** const node)
+{
+    ASSERT (input_buf != NULL, "Invalid argument input_buf = %p\n", input_buf);
+    ASSERT (offset    != NULL, "Invalid argument offset = %p\n",    offset);
+    ASSERT (node      != NULL, "Invalid argument node = %p\n",      node);
+
+    enum DiffError result = kDoneDiff;
+
+    double number = 0;
+    if (sscanf (input_buf + *offset, "%lf", &number) == 1)
+    {
+        LOG (kDebug, "Read number = %lf\n"
+                    "Offset = %lu\n"
+                    "Node** = %p\n", number, *offset + 1, node);
+
+        (*node)->type = kNum;
+        (*node)->value.number = number;
+
+        SkipNumber (input_buf, offset);
+    }
+
+    *offset += skip_space_symbols (input_buf + *offset);
+
+    return result;
+}
+
 static enum FuncType StrToFunc (char* const func)
 {
     ASSERT (func != NULL, "Invalid argument func = %p\n", func);
@@ -489,6 +615,11 @@ static void SkipNumber (char* const input_buf, size_t* const offset)
 
     *offset += skip_space_symbols (input_buf + *offset);
 
+    LOG (kDebug, "Input buffer    = %p\n"
+                "Offset          = %lu\n"
+                "Run time symbol = {%c}\n",
+                input_buf, *offset, input_buf [*offset]);
+
     if (input_buf [*offset] == '-')
     {
         (*offset)++;
@@ -514,9 +645,53 @@ static void SkipNumber (char* const input_buf, size_t* const offset)
     *offset += skip_space_symbols (input_buf + *offset);
 }
 
-static enum DiffError SyntaxError (const size_t offset)
+static void SkipComment (char* const input_buf, size_t* const offset)
 {
-    fprintf (stderr, "Invalid syntax with offset = %lu\n", offset);
+    ASSERT (input_buf != NULL, "Invalid argument input_buf = %p\n", input_buf);
+    ASSERT (offset    != NULL, "Invalid argument offset = %p\n",    offset);
+
+    LOG (kDebug, "Before skip comment:\n"
+                 "Input buffer    = %p\n"
+                 "Offset          = %lu\n"
+                 "Run time symbol = {%c}\n",
+                 input_buf, *offset, input_buf [*offset]);
+
+    if (input_buf [*offset] == kCommentSymbol)
+    {
+        (*offset)++;
+    }
+
+    while (input_buf [*offset] != kCommentSymbol)
+    {
+        (*offset)++;
+    }
+
+    (*offset)++;
+
+    (*offset) += skip_space_symbols (input_buf + *offset);
+
+    if (input_buf [*offset] == '\0')
+    {
+        LOG (kDebug, "After skip comment:\n"
+                     "Input buffer    = %p\n"
+                     "Offset          = %lu\n"
+                     "There is end of buffer\n",
+                     input_buf, *offset);
+        return;
+    }
+
+    LOG (kDebug, "After skip comment:\n"
+                 "Input buffer    = %p\n"
+                 "Offset          = %lu\n"
+                 "Run time symbol = {%c}\n",
+                 input_buf, *offset, input_buf [*offset]);
+}
+
+static enum DiffError SyntaxError (const char* const input_file_name, const size_t offset)
+{
+    fprintf (stderr, "%s:1:%lu\n"
+                     "Syntax error\n"
+                     , input_file_name, offset);
 
     return kSyntaxError;
 }
