@@ -1,14 +1,14 @@
-#include "../differenciator.h"
+#include "read_diff.h"
 
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
 #include <math.h>
 
-#include "../../My_lib/Assert/my_assert.h"
-#include "../../My_lib/Logger/logging.h"
-#include "../../My_lib/My_stdio/my_stdio.h"
-#include "../../My_lib/helpful.h"
+#include "My_lib/Assert/my_assert.h"
+#include "My_lib/Logger/logging.h"
+#include "My_lib/My_stdio/my_stdio.h"
+#include "My_lib/helpful.h"
 
 static enum DiffError GetAddSub   (char* const input_buf, size_t* const offset, node_t** const node);
 static enum DiffError GetMulDiv   (char* const input_buf, size_t* const offset, node_t** const node);
@@ -33,14 +33,15 @@ enum DiffError ReadDataBase (const char* const input_file_name, node_t** const r
 
     enum DiffError result = kDoneDiff;
 
-    FILE* input = NULL;
-    FOPEN (input, input_file_name, "r");
-    if (input == NULL)
+    // REVIEW -  input говно название FCLOSE
+    FILE* input_file = NULL;
+    FOPEN (input_file, input_file_name, "r");
+    if (input_file == NULL)
     {
         return kCantOpenDataBase;
     }
 
-    size_t file_size = size_of_file (input);
+    size_t file_size = size_of_file (input_file);
 
     LOG (kDebug, "Size of file = %lu\n",
                  file_size);
@@ -60,11 +61,12 @@ enum DiffError ReadDataBase (const char* const input_file_name, node_t** const r
                  "Size of file = %lu\n",
                  input_buf, file_size);
 
-    if (fread (input_buf, sizeof (char), file_size, input) == 0)
+    if (fread (input_buf, sizeof (char), file_size, input_file) == 0)
     {
         FREE_AND_NULL (input_buf);
         return kCantReadDataBase;
     }
+    FCLOSE (input_file);
 
     input_buf [file_size] = '\0';
 
@@ -111,15 +113,15 @@ static enum DiffError GetAddSub (char* const input_buf, size_t* const offset, no
     {
         if (*node != NULL)
         {
-            FuncDtor (*node);
+            ExpressionDtor (*node);
         }
-        node_t* root = FuncCtor ();
+        node_t* root = ExpressionCtor ();
         root->type = kFunc;
         root->value.function = kSub;
 
         LOG (kDebug, "Root with minus = %p\n", root);
 
-        root->left = FuncCtor ();
+        root->left = ExpressionCtor ();
         root->left->parent = root;
         root->left->type = kNum;
         root->left->value.number = 0;
@@ -155,7 +157,7 @@ static enum DiffError GetAddSub (char* const input_buf, size_t* const offset, no
         return result;
     }
 
-    node_t* root = FuncCtor ();
+    node_t* root = ExpressionCtor ();
 
     root->left = *node;
     (*node)->parent = root;
@@ -167,21 +169,15 @@ static enum DiffError GetAddSub (char* const input_buf, size_t* const offset, no
         if (root->type != kNewNode)
         {
             node_t* subtree = root;
-            root = FuncCtor ();
+            root = ExpressionCtor ();
             root->left = subtree;
             root->left->parent = root;
         }
 
         root->type = kFunc;
 
-        if (input_buf [(*offset)++] == '+')
-        {
-            root->value.function = kAdd;
-        }
-        else
-        {
-            root->value.function = kSub;
-        }
+        // REVIEW -  тернарник
+        root->value.function = (input_buf [(*offset)++] == '+') ? kAdd : kSub;
 
         result = GetMulDiv (input_buf, offset, &(root->right));
 
@@ -241,7 +237,7 @@ static enum DiffError GetMulDiv (char* const input_buf, size_t* const offset, no
         return result;
     }
 
-    node_t* root = FuncCtor ();
+    node_t* root = ExpressionCtor ();
 
     root->left = *node;
     (*node)->parent = root;
@@ -253,21 +249,14 @@ static enum DiffError GetMulDiv (char* const input_buf, size_t* const offset, no
         if (root->type != kNewNode)
         {
             node_t* subtree = root;
-            root = FuncCtor ();
+            root = ExpressionCtor ();
             root->left = subtree;
             root->left->parent = root;
         }
 
         root->type = kFunc;
 
-        if (input_buf [(*offset)++] == '*')
-        {
-            root->value.function = kMul;
-        }
-        else
-        {
-            root->value.function = kDiv;
-        }
+        root->value.function = (input_buf [(*offset)++] == '*') ? kMul : kDiv;
 
         result = GetPow (input_buf, offset, &(root->right));
 
@@ -321,7 +310,7 @@ static enum DiffError GetPow (char* const input_buf, size_t* const offset, node_
         return result;
     }
 
-    node_t* root = FuncCtor ();
+    node_t* root = ExpressionCtor ();
 
     root->left = *node;
     (*node)->parent = root;
@@ -332,7 +321,7 @@ static enum DiffError GetPow (char* const input_buf, size_t* const offset, node_
         if (root->type != kNewNode)
         {
             node_t* subtree = root;
-            root = FuncCtor ();
+            root = ExpressionCtor ();
             root->left = subtree;
             root->left->parent = root;
         }
@@ -426,7 +415,7 @@ static enum DiffError GetNumVar (char* const input_buf, size_t* const offset, no
 
     if (*node == NULL)
     {
-        *node = FuncCtor ();
+        *node = ExpressionCtor ();
     }
 
     if (input_buf [*offset] == kCommentSymbol)

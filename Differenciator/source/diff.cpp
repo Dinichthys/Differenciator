@@ -1,11 +1,11 @@
-#include "../differenciator.h"
+#include "differenciator.h"
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
 
-#include "../../My_lib/Assert/my_assert.h"
-#include "../../My_lib/Logger/logging.h"
+#include "My_lib/Assert/my_assert.h"
+#include "My_lib/Logger/logging.h"
 
 static enum DiffError DiffTree (node_t** const new_root, const node_t* const root, const char var);
 static enum DiffError DiffNum  (node_t** const new_root, const node_t* const root);
@@ -49,13 +49,13 @@ enum DiffError Differencing (node_t** const new_root, node_t* const root, FILE* 
     {
         if (*new_root != NULL)
         {
-            FuncDtor (*new_root);
+            ExpressionDtor (*new_root);
         }
 
         return kCantDiffTree;
     }
 
-    FuncDtor (root);
+    ExpressionDtor (root);
 
     return kDoneDiff;
 }
@@ -157,7 +157,7 @@ static enum DiffError DiffkAdd (node_t** const new_root, const node_t* const roo
 
     enum DiffError result = kDoneDiff;
 
-    *new_root = FuncCtor ();
+    *new_root = ExpressionCtor ();
     (*new_root)->type = kFunc;
     (*new_root)->value.function = kAdd;
 
@@ -185,7 +185,7 @@ static enum DiffError DiffkSub (node_t** const new_root, const node_t* const roo
 
     enum DiffError result = kDoneDiff;
 
-    *new_root = FuncCtor ();
+    *new_root = ExpressionCtor ();
     (*new_root)->type = kFunc;
     (*new_root)->value.function = kSub;
 
@@ -213,15 +213,15 @@ static enum DiffError DiffkMul (node_t** const new_root, const node_t* const roo
 
     enum DiffError result = kDoneDiff;
 
-    *new_root = FuncCtor ();
+    *new_root = ExpressionCtor ();
     (*new_root)->type = kFunc;
     (*new_root)->value.function = kAdd;
 
-    (*new_root)->left = FuncCtor ();
+    (*new_root)->left = ExpressionCtor ();
     (*new_root)->left->type = kFunc;
     (*new_root)->left->value.function = kMul;
 
-    (*new_root)->right = FuncCtor ();
+    (*new_root)->right = ExpressionCtor ();
     (*new_root)->right->type = kFunc;
     (*new_root)->right->value.function = kMul;
 
@@ -261,23 +261,23 @@ static enum DiffError DiffkDiv (node_t** const new_root, const node_t* const roo
 
     enum DiffError result = kDoneDiff;
 
-    *new_root = FuncCtor ();
+    *new_root = ExpressionCtor ();
     (*new_root)->type = kFunc;
     (*new_root)->value.function = kDiv;
 
-    (*new_root)->left = FuncCtor ();
+    (*new_root)->left = ExpressionCtor ();
     (*new_root)->left->type = kFunc;
     (*new_root)->left->value.function = kSub;
 
-    (*new_root)->left->left = FuncCtor ();
+    (*new_root)->left->left = ExpressionCtor ();
     (*new_root)->left->left->type = kFunc;
     (*new_root)->left->left->value.function = kMul;
 
-    (*new_root)->left->right = FuncCtor ();
+    (*new_root)->left->right = ExpressionCtor ();
     (*new_root)->left->right->type = kFunc;
     (*new_root)->left->right->value.function = kMul;
 
-    (*new_root)->right = FuncCtor ();
+    (*new_root)->right = ExpressionCtor ();
     (*new_root)->right->type = kFunc;
     (*new_root)->right->value.function = kPow;
 
@@ -311,7 +311,7 @@ static enum DiffError DiffkDiv (node_t** const new_root, const node_t* const roo
         return result;
     }
 
-    (*new_root)->right->right = FuncCtor ();
+    (*new_root)->right->right = ExpressionCtor ();
     (*new_root)->right->right->type = kNum;
     (*new_root)->right->right->value.number = 2;
 
@@ -327,7 +327,7 @@ static enum DiffError DiffkPow (node_t** const new_root, const node_t* const roo
 
     enum DiffError result = kDoneDiff;
 
-    *new_root = FuncCtor ();
+    *new_root = ExpressionCtor ();
     (*new_root)->type = kFunc;
     (*new_root)->value.function = kMul;
 
@@ -337,11 +337,12 @@ static enum DiffError DiffkPow (node_t** const new_root, const node_t* const roo
         return result;
     }
 
-    node_t* new_node = (*new_root)->right = FuncCtor ();
+    // FIXME убрать копипаст нахуй!
+    node_t* new_node = (*new_root)->right = ExpressionCtor ();
     new_node->type = kFunc;
     new_node->value.function = kAdd;
 
-    new_node->left = FuncCtor ();
+    new_node->left = ExpressionCtor ();
     new_node->left->type = kFunc;
     new_node->left->value.function = kMul;
 
@@ -351,7 +352,7 @@ static enum DiffError DiffkPow (node_t** const new_root, const node_t* const roo
         return result;
     }
 
-    new_node->left->right = FuncCtor ();
+    new_node->left->right = ExpressionCtor ();
     new_node->left->right->type = kFunc;
     new_node->left->right->value.function = kLn;
 
@@ -361,11 +362,11 @@ static enum DiffError DiffkPow (node_t** const new_root, const node_t* const roo
         return result;
     }
 
-    new_node->right = FuncCtor ();
+    new_node->right = ExpressionCtor ();
     new_node->right->type = kFunc;
     new_node->right->value.function = kMul;
 
-    new_node->right->left = FuncCtor ();
+    new_node->right->left = ExpressionCtor ();
     new_node->right->left->type = kFunc;
     new_node->right->left->value.function = kDiv;
 
@@ -399,7 +400,7 @@ static enum DiffError DiffkSin (node_t** const new_root, const node_t* const roo
 
     enum DiffError result = kDoneDiff;
 
-    *new_root = FuncCtor ();
+    *new_root = ExpressionCtor ();
     (*new_root)->type = kFunc;
     (*new_root)->value.function = kMul;
 
@@ -409,7 +410,7 @@ static enum DiffError DiffkSin (node_t** const new_root, const node_t* const roo
         return result;
     }
 
-    (*new_root)->right = FuncCtor ();
+    (*new_root)->right = ExpressionCtor ();
     (*new_root)->right->type = kFunc;
     (*new_root)->right->value.function = kCos;
 
@@ -431,15 +432,15 @@ static enum DiffError DiffkCos (node_t** const new_root, const node_t* const roo
 
     enum DiffError result = kDoneDiff;
 
-    *new_root = FuncCtor ();
+    *new_root = ExpressionCtor ();
     (*new_root)->type = kFunc;
     (*new_root)->value.function = kMul;
 
-    (*new_root)->left = FuncCtor ();
+    (*new_root)->left = ExpressionCtor ();
     (*new_root)->left->type = kFunc;
     (*new_root)->left->value.function = kMul;
 
-    (*new_root)->left->left = FuncCtor ();
+    (*new_root)->left->left = ExpressionCtor ();
     (*new_root)->left->left->type = kNum;
     (*new_root)->left->left->value.number = -1;
 
@@ -449,7 +450,7 @@ static enum DiffError DiffkCos (node_t** const new_root, const node_t* const roo
         return result;
     }
 
-    (*new_root)->right = FuncCtor ();
+    (*new_root)->right = ExpressionCtor ();
     (*new_root)->right->type = kFunc;
     (*new_root)->right->value.function = kSin;
 
@@ -471,7 +472,7 @@ static enum DiffError DiffkTg (node_t** const new_root, const node_t* const root
 
     enum DiffError result = kDoneDiff;
 
-    *new_root = FuncCtor ();
+    *new_root = ExpressionCtor ();
     (*new_root)->type = kFunc;
     (*new_root)->value.function = kDiv;
 
@@ -481,15 +482,15 @@ static enum DiffError DiffkTg (node_t** const new_root, const node_t* const root
         return result;
     }
 
-    (*new_root)->right = FuncCtor ();
+    (*new_root)->right = ExpressionCtor ();
     (*new_root)->right->type = kFunc;
     (*new_root)->right->value.function = kPow;
 
-    (*new_root)->right->right = FuncCtor ();
+    (*new_root)->right->right = ExpressionCtor ();
     (*new_root)->right->right->type = kNum;
     (*new_root)->right->right->value.number = 2;
 
-    (*new_root)->right->left = FuncCtor ();
+    (*new_root)->right->left = ExpressionCtor ();
     (*new_root)->right->left->type = kFunc;
     (*new_root)->right->left->value.function = kCos;
 
@@ -511,15 +512,15 @@ static enum DiffError DiffkCtg (node_t** const new_root, const node_t* const roo
 
     enum DiffError result = kDoneDiff;
 
-    *new_root = FuncCtor ();
+    *new_root = ExpressionCtor ();
     (*new_root)->type = kFunc;
     (*new_root)->value.function = kDiv;
 
-    (*new_root)->left = FuncCtor ();
+    (*new_root)->left = ExpressionCtor ();
     (*new_root)->left->type = kFunc;
     (*new_root)->left->value.number = kMul;
 
-    (*new_root)->left->left = FuncCtor ();
+    (*new_root)->left->left = ExpressionCtor ();
     (*new_root)->left->left->type = kNum;
     (*new_root)->left->left->value.number = -1;
 
@@ -529,15 +530,15 @@ static enum DiffError DiffkCtg (node_t** const new_root, const node_t* const roo
         return result;
     }
 
-    (*new_root)->right = FuncCtor ();
+    (*new_root)->right = ExpressionCtor ();
     (*new_root)->right->type = kFunc;
     (*new_root)->right->value.function = kPow;
 
-    (*new_root)->right->right = FuncCtor ();
+    (*new_root)->right->right = ExpressionCtor ();
     (*new_root)->right->right->type = kNum;
     (*new_root)->right->right->value.number = 2;
 
-    (*new_root)->right->left = FuncCtor ();
+    (*new_root)->right->left = ExpressionCtor ();
     (*new_root)->right->left->type = kFunc;
     (*new_root)->right->left->value.function = kSin;
 
@@ -559,7 +560,7 @@ static enum DiffError DiffkLn (node_t** const new_root, const node_t* const root
 
     enum DiffError result = kDoneDiff;
 
-    *new_root = FuncCtor ();
+    *new_root = ExpressionCtor ();
     (*new_root)->type = kFunc;
     (*new_root)->value.function = kDiv;
 
@@ -585,17 +586,17 @@ static enum DiffError DiffkLog (node_t** const new_root, const node_t* const roo
     ASSERT (root     != NULL, "Invalid argument root = %p\n",     root);
     ASSERT (new_root != NULL, "Invalid argument new_root = %p\n", new_root);
 
-    node_t* temp_node = FuncCtor ();
+    node_t* temp_node = ExpressionCtor ();
     temp_node->type = kFunc;
     temp_node->value.function = kDiv;
 
-    temp_node->left = FuncCtor ();
+    temp_node->left = ExpressionCtor ();
     temp_node->left->parent = temp_node;
     temp_node->left->type = kFunc;
     temp_node->left->value.function = kLn;
     temp_node->left->right = root->right;
 
-    temp_node->right = FuncCtor ();
+    temp_node->right = ExpressionCtor ();
     temp_node->right->parent = temp_node;
     temp_node->right->type = kFunc;
     temp_node->right->value.function = kLn;

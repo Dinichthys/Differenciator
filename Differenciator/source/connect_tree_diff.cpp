@@ -1,7 +1,7 @@
-#include "../differenciator.h"
+#include "connect_tree_diff.h"
 
-#include "../../My_lib/Assert/my_assert.h"
-#include "../../My_lib/Logger/logging.h"
+#include "My_lib/Assert/my_assert.h"
+#include "My_lib/Logger/logging.h"
 
 enum DiffError ConnectTree (node_t* const root)
 {

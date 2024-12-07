@@ -1,11 +1,11 @@
-#include "../differenciator.h"
+#include "tex_dump_diff.h"
 
 #include <stdio.h>
 #include <time.h>
 
-#include "../../My_lib/Assert/my_assert.h"
-#include "../../My_lib/Logger/logging.h"
-#include "../../My_lib/My_stdio/my_stdio.h"
+#include "My_lib/Assert/my_assert.h"
+#include "My_lib/Logger/logging.h"
+#include "My_lib/My_stdio/my_stdio.h"
 
 static enum DiffError PrintTreeDiffTex    (const node_t* const root, FILE* const dump_file);
 static enum DiffError PrintFuncDiff       (const node_t* const root, FILE* const dump_file);
@@ -60,9 +60,9 @@ enum DiffError PrintEndTex (FILE* const dump_file, const char* const directory_t
 
     fprintf (dump_file, "\n\\end{document}\n");
 
-    char command [kCommandTerminalDumpLen] = "";
+    char command [kCommandTerminalDumpTexLen] = "";
 
-    sprintf (command, "pdflatex %s", file_name);
+    sprintf (command, "pdflatex %s >/dev/null", file_name);
     if (system (command) == -1)
     {
         return kCantMakePdfTexDiff;

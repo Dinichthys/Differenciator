@@ -1,19 +1,17 @@
-#include "../differenciator.h"
+#include "simplify_diff.h"
 
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
 
-#include "../../My_lib/Assert/my_assert.h"
-#include "../../My_lib/Logger/logging.h"
+#include "My_lib/Assert/my_assert.h"
+#include "My_lib/Logger/logging.h"
 
 static node_t* SimplifyNum     (node_t* const node, const double number);
 static node_t* SimplifyAddNull (node_t* const node);
 static node_t* SimplifyMulOne  (node_t* const node);
 static node_t* SimplifyFuncs   (node_t* const root);
 
-// ИДУТ РАБОТЫ! НЕ ЛЕЗЬ! -
-// ДЕЛО СДЕЛАНО -
 node_t* Simplify (node_t* const root, FILE* const dump_file)
 {
     ASSERT (root      != NULL, "Invalid argument root = %p\n",                 root);
@@ -21,7 +19,6 @@ node_t* Simplify (node_t* const root, FILE* const dump_file)
 
     LOG (kDebug, "Root at start = %p\n", root);
 
-    // PrintSimplify (root, dump_file);
     node_t* new_root = root;
 
     const double zero = 0;
@@ -29,15 +26,16 @@ node_t* Simplify (node_t* const root, FILE* const dump_file)
 
     if (root->type != kFunc)
     {
-        // PrintLoseSimplification (dump_file);
         return root;
     }
 
+    // FIXME вынеси нахуй всё в переменную
+    // FIXME вынести фунцкию SimplifyIdentityElement, Identity = единичный элемент для операции, 1 для умножения, 0 для сложения
     if (((new_root->value.function == kAdd)
-        && (((new_root->right->type == kNum) && (memcmp (&(new_root->right->value.number), &zero, sizeof (zero)) == 0))
-        ||  ((new_root->left->type  == kNum) && (memcmp (&(new_root->left->value.number),  &zero, sizeof (zero)) == 0))))
+         && (((new_root->right->type == kNum) && (memcmp (&(new_root->right->value.number), &zero, sizeof (zero)) == 0)) // FIXME сравнение нормальное
+             ||  ((new_root->left->type  == kNum) && (memcmp (&(new_root->left->value.number),  &zero, sizeof (zero)) == 0))))
         ||  ((new_root->value.function == kSub)
-        && ((new_root->right->type  == kNum) && (memcmp (&(new_root->right->value.number), &zero, sizeof (zero)) == 0))))
+             && ((new_root->right->type  == kNum) && (memcmp (&(new_root->right->value.number), &zero, sizeof (zero)) == 0))))
     {
         PrintObviouslyStart (new_root, dump_file);
         new_root = SimplifyAddNull (new_root);
@@ -145,7 +143,7 @@ static node_t* SimplifyNum (node_t* const node, const double number)
 
     node_t* const parent = node->parent;
 
-    FuncDtor (node);
+    ExpressionDtor (node);
     return AddNode ((node_t){kNum, number, parent, NULL, NULL});
 }
 
@@ -160,7 +158,7 @@ static node_t* SimplifyAddNull (node_t* const node)
     if ((node->left != NULL) && (node->left->type == kNum)
         && (memcmp (&(node->left->value.number), &(zero), sizeof (zero)) == 0))
     {
-        FuncDtor (node->left);
+        ExpressionDtor (node->left);
         result = node->right;
         free (node);
         result->parent = NULL;
@@ -172,7 +170,7 @@ static node_t* SimplifyAddNull (node_t* const node)
     if ((node->right != NULL) && (node->right->type == kNum)
         && (memcmp (&(node->right->value.number), &(zero), sizeof (zero)) == 0))
     {
-        FuncDtor (node->right);
+        ExpressionDtor (node->right);
         result = node->left;
         free (node);
         result->parent = NULL;

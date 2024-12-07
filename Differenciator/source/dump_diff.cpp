@@ -1,11 +1,11 @@
-#include "../differenciator.h"
+#include "dump_diff.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "../../My_lib/Assert/my_assert.h"
-#include "../../My_lib/Logger/logging.h"
-#include "../../My_lib/My_stdio/my_stdio.h"
+#include "My_lib/Assert/my_assert.h"
+#include "My_lib/Logger/logging.h"
+#include "My_lib/My_stdio/my_stdio.h"
 
 static enum DiffError PrintNodeInfoDiff  (node_t* const node, FILE* const dump_file);
 static enum DiffError PrintTreeInfoDiff  (node_t* const node, FILE* const dump_file);

@@ -3,23 +3,23 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#include "../My_lib/Logger/logging.h"
+#include "My_lib/Logger/logging.h"
 
 #define ERROR_HANDLER(error)                                                                            \
     if (error != kDoneDiff)                                                                             \
     {                                                                                                   \
         fprintf (stderr, "Code error = {%d} with name \"%s\"\n",                                        \
                          error, EnumErrorToStr (error));                                                \
-        FuncDtor (root);                                                                                \
+        ExpressionDtor (root);                                                                          \
         PrintEndTex (dump_tex_file, "/Dump_Files", "Dump_Files/Dump_Tex.tex");                          \
         fclose (dump_tex_file);                                                                         \
         fclose (error_file);                                                                            \
         return EXIT_FAILURE;                                                                            \
     }
 
-int main ()
+int main () // FIXME argc argv принимать файлы
 {
-    FILE* const error_file = fopen ("My_lib/Logger/error.txt", "w");
+    FILE* const error_file = fopen ("Differenciator/libs/My_lib/Logger/error.txt", "w");
     if (error_file == NULL)
     {
         fprintf (stderr, "Can't start logging\n");
@@ -37,16 +37,14 @@ int main ()
     }
     PrintTitleTex (dump_tex_file);
 
-    node_t* root = FuncCtor ();
+    node_t* root = ExpressionCtor ();
 
     enum DiffError result = kDoneDiff;
 
     result = ReadDataBase ("Example.txt", &root, dump_tex_file);
-
     ERROR_HANDLER (result);
 
     result = DumpDiff (root);
-
     ERROR_HANDLER (result);
 
     root = Simplify (root, dump_tex_file);
@@ -54,7 +52,6 @@ int main ()
     PrintSimplificationEnd (root, dump_tex_file);
 
     result = DumpDiff (root);
-
     ERROR_HANDLER (result);
 
     node_t* new_root = NULL;
@@ -63,8 +60,7 @@ int main ()
 
     root = new_root;
 
-    result = DumpDiff (root);
-
+    result = DumpDiff (root); // REVIEW -  лучше не делать пустых строк между получением ошибки и обработкой
     ERROR_HANDLER (result);
 
     root = Simplify (root, dump_tex_file);
@@ -72,10 +68,9 @@ int main ()
     PrintSimplificationEnd (root, dump_tex_file);
 
     result = DumpDiff (root);
-
     ERROR_HANDLER (result);
 
-    FuncDtor (root);
+    ExpressionDtor (root);
 
     PrintEndTex (dump_tex_file, "/Dump_Files", "Dump_Files/Dump_Tex.tex");
 

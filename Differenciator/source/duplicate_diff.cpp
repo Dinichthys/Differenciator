@@ -1,7 +1,7 @@
-#include "../differenciator.h"
+#include "duplicate_tree_diff.h"
 
-#include "../../My_lib/Assert/my_assert.h"
-#include "../../My_lib/Logger/logging.h"
+#include "My_lib/Assert/my_assert.h"
+#include "My_lib/Logger/logging.h"
 
 enum DiffError DuplicateTreeDiff (node_t** const new_root, const node_t* const root)
 {

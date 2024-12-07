@@ -1,4 +1,4 @@
-CXXFLAGS = -D DEBUG  -ggdb -g3  -std=c++17 -Og -Wall -Wextra -pie -fPIE -Werror=vla       \
+CXXFLAGS = -I Differenciator/libs -D DEBUG  -ggdb -g3  -std=c++17 -Og -Wall -Wextra -pie -fPIE -Werror=vla       				\
  -Weffc++ -Waggressive-loop-optimizations -Wc++14-compat -Wmissing-declarations -Wcast-align -Wcast-qual       \
  -Wchar-subscripts -Wconditionally-supported -Wconversion -Wctor-dtor-privacy -Wempty-body -Wfloat-equal       \
  -Wformat-nonliteral -Wformat-security -Wformat-signedness -Wformat=2 -Winline -Wlogical-op -Wnon-virtual-dtor \
@@ -14,7 +14,7 @@ ASAN_FLAGS = -fsanitize=address,alignment,bool,bounds,enum,float-cast-overflow,f
 
 # // -D_FORTIFY_SOURCES=3
 
-CXX = g++
+CXX = gcc
 # CXXFLAGS = -Wall -Wextra -pedantic
 
 MATHFLAGS = -lm
@@ -57,7 +57,7 @@ CXXFLAGS += $(MATHFLAGS) $(ASAN_FLAGS)
 
 all: diff
 
-diff: clean_dump build build_diff main_diff.o struct_diff.o differenciator.o simplify_diff.o connect_tree_diff.o read_diff.o dump_diff.o tex_dump_diff.o duplicate_diff.o my_stdio.o logging.o print_error.o
+diff: clean_dump build build_diff main_diff.o struct_diff.o diff.o simplify_diff.o connect_tree_diff.o read_diff.o dump_diff.o tex_dump_diff.o duplicate_diff.o my_stdio.o logging.o print_error.o
 	@$(CXX) $(CXXFLAGS) build/diff/*.o build/my_stdio.o build/logging.o build/print_error.o -o diff
 
 
@@ -68,21 +68,21 @@ build_diff:
 	mkdir -p build/diff
 
 
-my_stdio.o: My_lib/My_stdio/my_stdio.cpp
-	@$(CXX) $(CXXFLAGS) -c My_lib/My_stdio/my_stdio.cpp -o build/my_stdio.o
+my_stdio.o: Differenciator/libs/My_lib/My_stdio/my_stdio.cpp
+	@$(CXX) $(CXXFLAGS) -c Differenciator/libs/My_lib/My_stdio/my_stdio.cpp -o build/my_stdio.o
 
-logging.o: My_lib/Logger/logging.cpp
-	@$(CXX) $(CXXFLAGS) -c My_lib/Logger/logging.cpp -o build/logging.o
+logging.o: Differenciator/libs/My_lib/Logger/logging.cpp
+	@$(CXX) $(CXXFLAGS) -c Differenciator/libs/My_lib/Logger/logging.cpp -o build/logging.o
 
-print_error.o: My_lib/Assert/print_error.cpp
-	@$(CXX) $(CXXFLAGS) -c My_lib/Assert/print_error.cpp -o build/print_error.o
+print_error.o: Differenciator/libs/My_lib/Assert/print_error.cpp
+	@$(CXX) $(CXXFLAGS) -c Differenciator/libs/My_lib/Assert/print_error.cpp -o build/print_error.o
 
 
-main_diff.o: Differenciator/main_diff.cpp
-	@$(CXX) $(CXXFLAGS) -c Differenciator/main_diff.cpp -o build/diff/main_diff.o
+main_diff.o: Differenciator/source/main_diff.cpp
+	@$(CXX) $(CXXFLAGS) -c Differenciator/source/main_diff.cpp -o build/diff/main_diff.o
 
-differenciator.o: Differenciator/source/differenciator.cpp
-	@$(CXX) $(CXXFLAGS) -c Differenciator/source/differenciator.cpp -o build/diff/differenciator.o
+diff.o: Differenciator/source/diff.cpp
+	@$(CXX) $(CXXFLAGS) -c Differenciator/source/diff.cpp -o build/diff/diff.o
 
 struct_diff.o: Differenciator/source/struct_diff.cpp
 	@$(CXX) $(CXXFLAGS) -c Differenciator/source/struct_diff.cpp -o build/diff/struct_diff.o
