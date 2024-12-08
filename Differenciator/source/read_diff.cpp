@@ -1,5 +1,7 @@
 #include "read_diff.h"
 
+#include "parse_flags_diff.h"
+
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
@@ -9,6 +11,10 @@
 #include "My_lib/Logger/logging.h"
 #include "My_lib/My_stdio/my_stdio.h"
 #include "My_lib/helpful.h"
+
+static enum DiffError ReadDataBase       (const char* const input_file_name, node_t** const root,
+                                          FILE* const dump_file);
+static enum DiffError ReadUserExpression (node_t** const root, FILE* const dump_file);
 
 static enum DiffError GetAddSub   (char* const input_buf, size_t* const offset, node_t** const node);
 static enum DiffError GetMulDiv   (char* const input_buf, size_t* const offset, node_t** const node);
@@ -26,10 +32,70 @@ static enum FuncType  StrToFunc   (char* const func);
 static void           SkipNumber  (char* const input_buf, size_t* const offset);
 static void           SkipComment (char* const input_buf, size_t* const offset);
 
-enum DiffError ReadDataBase (const char* const input_file_name, node_t** const root, FILE* const dump_file)
+enum DiffError ReadExpression (settings_of_program_t* const set, node_t** const root)
+{
+    ASSERT (set  != NULL, "Invalid argument set = %p\n",  set);
+    ASSERT (root != NULL, "Invalid argument root = %p\n", root);
+
+    if (set->input_file_name != NULL)
+    {
+        return ReadDataBase (set->input_file_name, root, set->stream_out);
+    }
+
+    return ReadUserExpression (root, set->stream_out);
+}
+
+static enum DiffError ReadUserExpression (node_t** const root, FILE* const dump_file)
+{
+    ASSERT (root      != NULL, "Invalid argument root = %p\n",      root);
+    ASSERT (dump_file != NULL, "Invalid argument dump file = %p\n", dump_file);
+
+    enum DiffError result = kDoneDiff;
+
+    fprintf (stdout, "Write the expression firstly (but not huge as you can't read it by yourself):\n");
+
+    char* input_buf = (char*) calloc (kExpressionLen, sizeof (char));
+    if (input_buf == NULL)
+    {
+        return kCantCallocInputBuffer;
+    }
+
+    if (fgets (input_buf, kExpressionLen, stdin) == NULL)
+    {
+        FREE_AND_NULL (input_buf);
+        return kCantReadDataBase;
+    }
+
+    input_buf [strlen (input_buf)] = '\0';
+
+    size_t offset = 0;
+
+    result = GetAddSub (input_buf, &offset, root);
+
+    offset += skip_space_symbols (input_buf + offset);
+
+    if (input_buf [offset] != '\0')
+    {
+        FREE_AND_NULL (input_buf);
+
+        return SyntaxError ("Stdin", offset);
+    }
+
+    FREE_AND_NULL (input_buf);
+
+    if (result == kDoneDiff)
+    {
+        result = PrintAfterReadTreeDiff ("Stdin", *root, dump_file);
+    }
+
+    return result;
+}
+
+static enum DiffError ReadDataBase (const char* const input_file_name, node_t** const root, FILE* const dump_file)
 {
     ASSERT (input_file_name != NULL, "Invalid argument input file name = %p\n", input_file_name);
-    ASSERT (root            != NULL, "Invalid argument root = %p\n", root);
+    ASSERT (root            != NULL, "Invalid argument root = %p\n",            root);
+    ASSERT (dump_file       != NULL, "Invalid argument dump file = %p\n",       dump_file);
 
     enum DiffError result = kDoneDiff;
 

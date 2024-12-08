@@ -93,6 +93,10 @@ const char* EnumErrorToStr (const enum DiffError error)
         CASE (kCantMakePdfTexDiff);
         CASE (kInvalidNodeForPrintTexDiff);
         CASE (kUndefFuncPrintTexDiff);
+        CASE (kCantPrintBinaryInfixFunc);
+        CASE (kCantPrintBinaryPrefixFunc);
+        CASE (kCantPrintUnaryFunc);
+        CASE (kInvalidModeTypeDiffError);
 
         default:
             return "Invalid enum element";

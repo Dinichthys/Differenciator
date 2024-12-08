@@ -3,7 +3,7 @@
 
 // REVIEW -  бля почему 1 хедер!!! пизда на диаметре
 
-static const double kAccuracy   = 0.2;
+static const double kAccuracy   = 0.001;
 
 enum DiffError
 {
@@ -30,6 +30,11 @@ enum DiffError
     kCantMakePdfTexDiff         = 15,
     kInvalidNodeForPrintTexDiff = 16,
     kUndefFuncPrintTexDiff      = 17,
+    kCantPrintBinaryInfixFunc   = 18,
+    kCantPrintBinaryPrefixFunc  = 19,
+    kCantPrintUnaryFunc         = 20,
+
+    kInvalidModeTypeDiffError   = 21,
 };
 
 enum NodeType

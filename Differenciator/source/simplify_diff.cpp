@@ -11,6 +11,7 @@ static node_t* SimplifyNum     (node_t* const node, const double number);
 static node_t* SimplifyAddNull (node_t* const node);
 static node_t* SimplifyMulOne  (node_t* const node);
 static node_t* SimplifyFuncs   (node_t* const root);
+static bool IdentityNodeValNum (const node_t* const node, const double number);
 
 node_t* Simplify (node_t* const root, FILE* const dump_file)
 {
@@ -29,13 +30,14 @@ node_t* Simplify (node_t* const root, FILE* const dump_file)
         return root;
     }
 
-    // FIXME вынеси нахуй всё в переменную
-    // FIXME вынести фунцкию SimplifyIdentityElement, Identity = единичный элемент для операции, 1 для умножения, 0 для сложения
-    if (((new_root->value.function == kAdd)
-         && (((new_root->right->type == kNum) && (memcmp (&(new_root->right->value.number), &zero, sizeof (zero)) == 0)) // FIXME сравнение нормальное
-             ||  ((new_root->left->type  == kNum) && (memcmp (&(new_root->left->value.number),  &zero, sizeof (zero)) == 0))))
-        ||  ((new_root->value.function == kSub)
-             && ((new_root->right->type  == kNum) && (memcmp (&(new_root->right->value.number), &zero, sizeof (zero)) == 0))))
+    bool left_is_zero_num  = IdentityNodeValNum (new_root->left,  zero);
+    bool right_is_zero_num = IdentityNodeValNum (new_root->right, zero);
+
+    // REVIEW -  вынеси нахуй всё в переменную
+    // REVIEW -  вынести фунцкию SimplifyIdentityElement, Identity = единичный элемент для операции, 1 для умножения, 0 для сложения
+    // REVIEW -  сравнение нормальное
+    if (   ((new_root->value.function == kAdd) && (left_is_zero_num || right_is_zero_num))
+        || ((new_root->value.function == kSub) && (right_is_zero_num)))
     {
         PrintObviouslyStart (new_root, dump_file);
         new_root = SimplifyAddNull (new_root);
@@ -52,8 +54,8 @@ node_t* Simplify (node_t* const root, FILE* const dump_file)
     LOG (kDebug, "New root  after simplification (adding null) = %p\n", new_root);
 
     if ((new_root->value.function == kMul)
-        && (((new_root->right->type == kNum) && (memcmp (&(new_root->right->value.number), &one, sizeof (one)) == 0))
-        ||  ((new_root->left->type  == kNum) && (memcmp (&(new_root->left->value.number),  &one, sizeof (one)) == 0))))
+        && ((IdentityNodeValNum (new_root->left,  one))
+        ||  (IdentityNodeValNum (new_root->right, one))))
     {
         PrintObviouslyStart (new_root, dump_file);
         new_root = SimplifyMulOne (new_root);
@@ -69,11 +71,8 @@ node_t* Simplify (node_t* const root, FILE* const dump_file)
 
     LOG (kDebug, "New root  after simplification (multiply by one) = %p\n", new_root);
 
-    if (((new_root->value.function == kMul)
-        && (((new_root->right->type  == kNum) && ((memcmp (&(new_root->right->value.number), &zero, sizeof (zero)) == 0)))
-        ||  ((new_root->left->type   == kNum) &&  (memcmp (&(new_root->left->value.number),  &zero, sizeof (zero)) == 0))))
-        || ((new_root->value.function == kDiv)
-        && (((new_root->left->type  == kNum) && (memcmp (&(new_root->left->value.number), &zero, sizeof (zero)) == 0)))))
+    if (   ((new_root->value.function == kMul) && (right_is_zero_num || left_is_zero_num))
+        || ((new_root->value.function == kDiv) && left_is_zero_num))
     {
         PrintObviouslyStart (new_root, dump_file);
         new_root = SimplifyNum (new_root, 0);
@@ -89,9 +88,9 @@ node_t* Simplify (node_t* const root, FILE* const dump_file)
 
     LOG (kDebug, "New root after simplification (multiply null or divide zero) = %p\n", new_root);
 
-    if ((((new_root->left  != NULL) && (new_root->left->type  == kNum)
-       && (new_root->right != NULL) && (new_root->right->type == kNum))
-      || (((new_root->left == NULL)) && (new_root->right != NULL) && (new_root->right->type == kNum))))
+    if ((  (new_root->left  != NULL) && (new_root->left->type  == kNum)
+        && (new_root->right != NULL) && (new_root->right->type == kNum))
+        || ((new_root->left == NULL) && (new_root->right != NULL) && (new_root->right->type == kNum)))
     {
         PrintObviouslyStart (new_root, dump_file);
         new_root = SimplifyFuncs (new_root);
@@ -124,11 +123,6 @@ node_t* Simplify (node_t* const root, FILE* const dump_file)
 
     ConnectTree (new_root);
 
-    // if (new_root == root)
-    // {
-    //     PrintLoseSimplification (dump_file);
-    // }
-
     if ((old_left == new_root->left) && (old_right == new_root->right))
     {
         return new_root;
@@ -155,8 +149,7 @@ static node_t* SimplifyAddNull (node_t* const node)
 
     node_t* result = NULL;
 
-    if ((node->left != NULL) && (node->left->type == kNum)
-        && (memcmp (&(node->left->value.number), &(zero), sizeof (zero)) == 0))
+    if (IdentityNodeValNum (node->left, zero))
     {
         ExpressionDtor (node->left);
         result = node->right;
@@ -167,8 +160,7 @@ static node_t* SimplifyAddNull (node_t* const node)
 
     LOG (kDebug, "Left node is not a node with null\n");
 
-    if ((node->right != NULL) && (node->right->type == kNum)
-        && (memcmp (&(node->right->value.number), &(zero), sizeof (zero)) == 0))
+    if (IdentityNodeValNum (node->right, zero))
     {
         ExpressionDtor (node->right);
         result = node->left;
@@ -189,7 +181,7 @@ static node_t* SimplifyMulOne (node_t* const node)
     const double one = 1;
 
     if ((node->value.function == kMul)
-        && (node->right->type == kNum) && (memcmp (&(node->right->value.number), &one, sizeof (one)) == 0))
+        && (IdentityNodeValNum (node->right, one)))
     {
         node_t* result = node->left;
         free (node->right);
@@ -199,7 +191,7 @@ static node_t* SimplifyMulOne (node_t* const node)
     }
 
     if ((node->value.function == kMul)
-        && (node->left->type == kNum) && (memcmp (&(node->left->value.number), &one, sizeof (one)) == 0))
+        && (IdentityNodeValNum (node->left, one)))
     {
         node_t* result = node->right;
         free (node->left);
@@ -257,4 +249,9 @@ static node_t* SimplifyFuncs (node_t* const root)
     #undef UNARY_FUNC
 
     return NULL;
+}
+
+static bool IdentityNodeValNum (const node_t* const node, const double number)
+{
+    return ((node != NULL) && (node->type == kNum) && (abs (node->value.number - number) < kAccuracy));
 }

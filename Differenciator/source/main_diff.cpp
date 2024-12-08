@@ -1,4 +1,6 @@
 #include "differenciator.h"
+#include "parse_flags_diff.h"
+#include "parse_mode_diff.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -11,71 +13,62 @@
         fprintf (stderr, "Code error = {%d} with name \"%s\"\n",                                        \
                          error, EnumErrorToStr (error));                                                \
         ExpressionDtor (root);                                                                          \
-        PrintEndTex (dump_tex_file, "/Dump_Files", "Dump_Files/Dump_Tex.tex");                          \
-        fclose (dump_tex_file);                                                                         \
-        fclose (error_file);                                                                            \
+        PrintEndTex (set.stream_out, set.output_file_name);                                             \
+        SettingsDtor (&set);                                                                            \
         return EXIT_FAILURE;                                                                            \
     }
 
-int main () // FIXME argc argv принимать файлы
+int main (const int argc, char* argv[]) // REVIEW argc argv принимать файлы
 {
-    FILE* const error_file = fopen ("Differenciator/libs/My_lib/Logger/error.txt", "w");
-    if (error_file == NULL)
+    settings_of_program_t set = {};
+    SettingsCtor (&set);
+    ParseFlags (argc, argv, &set);
+    if (set.stop_program)
     {
-        fprintf (stderr, "Can't start logging\n");
+        SettingsDtor (&set);
         return EXIT_FAILURE;
     }
-    set_log_file (error_file);
+
+    set_log_file (set.stream_err);
     set_log_lvl (kDebug);
 
-    FILE* const dump_tex_file = fopen ("Dump_Files/Dump_Tex.tex", "w");
-    if (dump_tex_file == NULL)
-    {
-        fprintf (stderr, "Cant't start tex dump\n");
-        fclose  (error_file);
-        return EXIT_FAILURE;
-    }
-    PrintTitleTex (dump_tex_file);
+    PrintTitleTex (set.stream_out);
 
     node_t* root = ExpressionCtor ();
 
     enum DiffError result = kDoneDiff;
 
-    result = ReadDataBase ("Example.txt", &root, dump_tex_file);
+    result = ReadExpression (&set, &root);
     ERROR_HANDLER (result);
 
     result = DumpDiff (root);
     ERROR_HANDLER (result);
 
-    root = Simplify (root, dump_tex_file);
+    root = Simplify (root, set.stream_out);
 
-    PrintSimplificationEnd (root, dump_tex_file);
+    PrintSimplificationEnd (root, set.stream_out);
 
     result = DumpDiff (root);
     ERROR_HANDLER (result);
 
-    node_t* new_root = NULL;
-
-    result = Differencing (&new_root, root, dump_tex_file);
-
-    root = new_root;
+    result = ParseMode (&set, &root);
+    ERROR_HANDLER (result);
 
     result = DumpDiff (root); // REVIEW -  лучше не делать пустых строк между получением ошибки и обработкой
     ERROR_HANDLER (result);
 
-    root = Simplify (root, dump_tex_file);
+    root = Simplify (root, set.stream_out);
 
-    PrintSimplificationEnd (root, dump_tex_file);
+    PrintSimplificationEnd (root, set.stream_out);
 
     result = DumpDiff (root);
     ERROR_HANDLER (result);
 
     ExpressionDtor (root);
 
-    PrintEndTex (dump_tex_file, "/Dump_Files", "Dump_Files/Dump_Tex.tex");
+    PrintEndTex (set.stream_out, set.output_file_name);
 
-    fclose (dump_tex_file);
-    fclose (error_file);
+    SettingsDtor (&set);
 
     return EXIT_SUCCESS;
 }

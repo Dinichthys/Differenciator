@@ -7,9 +7,15 @@
 #include "My_lib/Logger/logging.h"
 #include "My_lib/My_stdio/my_stdio.h"
 
-static enum DiffError PrintTreeDiffTex    (const node_t* const root, FILE* const dump_file);
-static enum DiffError PrintFuncDiff       (const node_t* const root, FILE* const dump_file);
-static enum DiffError PrintNumVarNodeDiff (const node_t* const root, FILE* const dump_file);
+static enum DiffError PrintTreeDiffTex      (const node_t* const root, FILE* const dump_file);
+static enum DiffError PrintFuncDiff         (const node_t* const root, FILE* const dump_file);
+static enum DiffError PrintNumVarNodeDiff   (const node_t* const root, FILE* const dump_file);
+static enum DiffError PrintBinaryInfixFunc  (const node_t* const root, const enum FuncType func_type,
+                                             const char* const str_func, FILE* const dump_file);
+static enum DiffError PrintBinaryPrefixFunc (const node_t* const root, const enum FuncType func_type,
+                                             const char* const str_func, FILE* const dump_file);
+static enum DiffError PrintUnaryFunc        (const node_t* const root, const enum FuncType func_type,
+                                             const char* const str_func, FILE* const dump_file);
 
 enum DiffError PrintFormula (const node_t* const root, FILE* const dump_file)
 {
@@ -52,10 +58,9 @@ enum DiffError PrintTitleTex (FILE* const dump_file)
     return kDoneDiff;
 }
 
-enum DiffError PrintEndTex (FILE* const dump_file, const char* const directory_tex, const char* const file_name)
+enum DiffError PrintEndTex (FILE* const dump_file, const char* const file_name)
 {
     ASSERT (dump_file     != NULL, "Invalid argument dump_file = %p\n", dump_file);
-    ASSERT (directory_tex != NULL, "Invalid argument Directory = %p\n", directory_tex);
     ASSERT (file_name     != NULL, "Invalid argument File name = %p\n", file_name);
 
     fprintf (dump_file, "\n\\end{document}\n");
@@ -186,6 +191,12 @@ static enum DiffError PrintFuncDiff (const node_t* const root, FILE* const dump_
     ASSERT (root      != NULL, "Invalid argument root = %p\n",      root);
     ASSERT (dump_file != NULL, "Invalid argument dump_file = %p\n", dump_file);
 
+    #define RESULT_HANDLER(result)  \
+    if (result == kDoneDiff)        \
+    {                               \
+        return result;              \
+    }
+
     enum DiffError result = kUndefFuncPrintTexDiff;
 
     if (root->type != kFunc)
@@ -193,72 +204,161 @@ static enum DiffError PrintFuncDiff (const node_t* const root, FILE* const dump_
         return kInvalidNodeForPrintTexDiff;
     }
 
-    #define BINARY_FUNC_INFIX(func_type, str_func)                      \
-        if (root->value.function == func_type)                          \
-        {                                                               \
-            fprintf (dump_file, " {");                                   \
-            result = PrintTreeDiffTex (root->left,  dump_file);         \
-            fprintf (dump_file, "} ");                                   \
-            if (result != kDoneDiff)                                    \
-            {                                                           \
-                return result;                                          \
-            }                                                           \
-            fprintf (dump_file, str_func);                              \
-            fprintf (dump_file, " {");                                   \
-            result = PrintTreeDiffTex (root->right, dump_file);         \
-            fprintf (dump_file, "} ");                                   \
-            return result;                                              \
-        }
 
-    BINARY_FUNC_INFIX (kAdd, "+");
-    BINARY_FUNC_INFIX (kSub, "-");
-    BINARY_FUNC_INFIX (kMul, "\\cdot");
-    BINARY_FUNC_INFIX (kPow, "^");
+    result = PrintBinaryInfixFunc (root, kAdd, "+",     dump_file);
+    RESULT_HANDLER (result);
+    result = PrintBinaryInfixFunc (root, kSub, "-",     dump_file);
+    RESULT_HANDLER (result);
+    result = PrintBinaryInfixFunc (root, kMul, "\\cdot", dump_file);
+    RESULT_HANDLER (result);
+    result = PrintBinaryInfixFunc (root, kPow, "^",     dump_file);
+    RESULT_HANDLER (result);
 
-    #undef BINARY_FUNC_INFIX
+    result = PrintBinaryPrefixFunc (root, kDiv, "\\frac", dump_file);
+    RESULT_HANDLER (result);
+    result = PrintBinaryPrefixFunc (root, kLog, "\\log_", dump_file);
+    RESULT_HANDLER (result);
 
-    #define BINARY_FUNC_PREFIX(func_type, str_func)                     \
-        if (root->value.function == func_type)                          \
-        {                                                               \
-            fprintf (dump_file, str_func);                              \
-            fprintf (dump_file, " {");                                   \
-            result = PrintTreeDiffTex (root->left,  dump_file);         \
-            fprintf (dump_file, "} ");                                   \
-            if (result != kDoneDiff)                                    \
-            {                                                           \
-                return result;                                          \
-            }                                                           \
-            fprintf (dump_file, " {");                                   \
-            result = PrintTreeDiffTex (root->right, dump_file);         \
-            fprintf (dump_file, "} ");                                   \
-            return result;                                              \
-        }
 
-    BINARY_FUNC_PREFIX (kDiv, "\\frac");
-    BINARY_FUNC_PREFIX (kLog, "\\log_");
+    result = PrintUnaryFunc (root, kSin, "\\sin", dump_file);
+    RESULT_HANDLER (result);
+    result = PrintUnaryFunc (root, kCos, "\\cos", dump_file);
+    RESULT_HANDLER (result);
+    result = PrintUnaryFunc (root, kTg , "\\tan", dump_file);
+    RESULT_HANDLER (result);
+    result = PrintUnaryFunc (root, kCtg, "\\cot", dump_file);
+    RESULT_HANDLER (result);
 
-    #undef BINARY_FUNC_PREFIX
+    result = PrintUnaryFunc (root, kLn,  "\\ln" , dump_file);
+    RESULT_HANDLER (result);
 
-    #define UNARY_FUNC(func_type, str_func)                             \
-        if (root->value.function == func_type)                          \
-        {                                                               \
-            fprintf (dump_file, str_func);                              \
-            fprintf (dump_file, " {");                                   \
-            result = PrintTreeDiffTex (root->right, dump_file);         \
-            fprintf (dump_file, "} ");                                   \
-            return result;                                              \
-        }
-
-    UNARY_FUNC (kSin, "\\sin");
-    UNARY_FUNC (kCos, "\\cos");
-    UNARY_FUNC (kTg , "\\tan");
-    UNARY_FUNC (kCtg, "\\cot");
-
-    UNARY_FUNC (kLn,  "\\ln");
-
-    #undef UNARY_FUNC
+    #undef RESULT_HANDLER
 
     return result;
+}
+
+static enum DiffError PrintBinaryInfixFunc (const node_t* const root, const enum FuncType func_type,
+                                            const char* const str_func, FILE* const dump_file)
+{
+    ASSERT (root      != NULL, "Invalid argument root = %p\n",      root);
+    ASSERT (dump_file != NULL, "Invalid argument dump_file = %p\n", dump_file);
+    ASSERT (str_func  != NULL, "Invalid argument str_func = %p\n",  str_func);
+
+    enum DiffError result = kDoneDiff;
+
+    #define ERROR_HANDLER(result)   \
+    if (result != kDoneDiff)        \
+    {                               \
+        return result;              \
+    }
+
+    if (root->value.function == func_type)
+    {
+        fprintf (dump_file, " {");
+
+        if (((func_type == kMul) || (func_type == kPow))
+            && ((root->left->left != NULL) || (root->left->right != NULL)))
+        {
+            fprintf (dump_file, "(");
+            result = PrintTreeDiffTex (root->left, dump_file);
+            fprintf (dump_file, ")");
+        }
+        else
+        {
+            result = PrintTreeDiffTex (root->left, dump_file);
+        }
+        ERROR_HANDLER (result);
+
+        fprintf (dump_file, "} ");
+
+        fprintf (dump_file, "%s", str_func);
+
+        fprintf (dump_file, " {");
+
+        if (((func_type == kMul) || (func_type == kPow))
+            && ((root->right->left != NULL) || (root->right->right != NULL)))
+        {
+            fprintf (dump_file, "(");
+            result = PrintTreeDiffTex (root->right, dump_file);
+            fprintf (dump_file, ")");
+        }
+        else
+        {
+            result = PrintTreeDiffTex (root->right, dump_file);
+        }
+        ERROR_HANDLER (result);
+
+        fprintf (dump_file, "} ");
+
+        return result;
+    }
+
+    #undef ERROR_HANDLER
+
+    return kCantPrintBinaryInfixFunc;
+}
+
+static enum DiffError PrintBinaryPrefixFunc (const node_t* const root, const enum FuncType func_type,
+                                            const char* const str_func, FILE* const dump_file)
+{
+    ASSERT (root      != NULL, "Invalid argument root = %p\n",      root);
+    ASSERT (dump_file != NULL, "Invalid argument dump_file = %p\n", dump_file);
+    ASSERT (str_func  != NULL, "Invalid argument str_func = %p\n",  str_func);
+
+    enum DiffError result = kDoneDiff;
+
+    if (root->value.function == func_type)
+    {
+        fprintf (dump_file, "%s", str_func);
+
+        fprintf (dump_file, " {");
+        result = PrintTreeDiffTex (root->left,  dump_file);
+        fprintf (dump_file, "} ");
+
+        if (result != kDoneDiff)
+        {
+            return result;
+        }
+
+        fprintf (dump_file, " {");
+        result = PrintTreeDiffTex (root->right, dump_file);
+        fprintf (dump_file, "} ");
+        return result;
+    }
+
+    return kCantPrintBinaryPrefixFunc;
+}
+
+static enum DiffError PrintUnaryFunc (const node_t* const root, const enum FuncType func_type,
+                                            const char* const str_func, FILE* const dump_file)
+{
+    ASSERT (root      != NULL, "Invalid argument root = %p\n",      root);
+    ASSERT (dump_file != NULL, "Invalid argument dump_file = %p\n", dump_file);
+    ASSERT (str_func  != NULL, "Invalid argument str_func = %p\n",  str_func);
+
+    enum DiffError result = kDoneDiff;
+
+    if (root->value.function == func_type)
+    {
+        fprintf (dump_file, "%s", str_func);
+
+        fprintf (dump_file, " {");
+        if ((root->right->left != NULL) || (root->right->right != NULL))
+        {
+            fprintf (dump_file, "(");
+            result = PrintTreeDiffTex (root->right, dump_file);
+            fprintf (dump_file, ")");
+        }
+        else
+        {
+            result = PrintTreeDiffTex (root->right, dump_file);
+        }
+        fprintf (dump_file, "} ");
+
+        return result;
+    }
+
+    return kCantPrintUnaryFunc;
 }
 
 static enum DiffError PrintNumVarNodeDiff (const node_t* const root, FILE* const dump_file)

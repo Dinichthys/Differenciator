@@ -1,4 +1,4 @@
-CXXFLAGS = -I Differenciator/libs -D DEBUG  -ggdb -g3  -std=c++17 -Og -Wall -Wextra -pie -fPIE -Werror=vla       				\
+CXXFLAGS = -I Differenciator/libs -D _DEBUG  -ggdb -g3  -std=c++17 -Og -Wall -Wextra -pie -fPIE -Werror=vla       				\
  -Weffc++ -Waggressive-loop-optimizations -Wc++14-compat -Wmissing-declarations -Wcast-align -Wcast-qual       \
  -Wchar-subscripts -Wconditionally-supported -Wconversion -Wctor-dtor-privacy -Wempty-body -Wfloat-equal       \
  -Wformat-nonliteral -Wformat-security -Wformat-signedness -Wformat=2 -Winline -Wlogical-op -Wnon-virtual-dtor \
@@ -57,7 +57,7 @@ CXXFLAGS += $(MATHFLAGS) $(ASAN_FLAGS)
 
 all: diff
 
-diff: clean_dump build build_diff main_diff.o struct_diff.o diff.o simplify_diff.o connect_tree_diff.o read_diff.o dump_diff.o tex_dump_diff.o duplicate_diff.o my_stdio.o logging.o print_error.o
+diff: clean_dump build build_diff main_diff.o struct_diff.o diff.o simplify_diff.o connect_tree_diff.o read_diff.o dump_diff.o tex_dump_diff.o duplicate_diff.o parse_flags_diff.o parse_mode_diff.o my_stdio.o logging.o print_error.o
 	@$(CXX) $(CXXFLAGS) build/diff/*.o build/my_stdio.o build/logging.o build/print_error.o -o diff
 
 
@@ -104,6 +104,12 @@ dump_diff.o: Differenciator/source/dump_diff.cpp
 
 tex_dump_diff.o: Differenciator/source/tex_dump_diff.cpp
 	@$(CXX) $(CXXFLAGS) -c Differenciator/source/tex_dump_diff.cpp -o build/diff/tex_dump_diff.o
+
+parse_flags_diff.o: Differenciator/source/parse_flags_diff.cpp
+	@$(CXX) $(CXXFLAGS) -c Differenciator/source/parse_flags_diff.cpp -o build/diff/parse_flags_diff.o
+
+parse_mode_diff.o: Differenciator/source/parse_mode_diff.cpp
+	@$(CXX) $(CXXFLAGS) -c Differenciator/source/parse_mode_diff.cpp -o build/diff/parse_mode_diff.o
 
 
 clean: rmdir_build

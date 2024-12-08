@@ -12,8 +12,7 @@ static const size_t kLenDataTex                = 100;
 enum DiffError PrintFormula            (const node_t* const root, FILE* const dump_file);
 
 enum DiffError PrintTitleTex           (FILE* const dump_file);
-enum DiffError PrintEndTex             (FILE* const dump_file, const char* const directory_tex,
-                                                               const char* const file_name);
+enum DiffError PrintEndTex             (FILE* const dump_file, const char* const file_name);
 
 enum DiffError PrintAfterReadTreeDiff  (const char* const input_file_name, const node_t* const root,
                                         FILE* const dump_file);
